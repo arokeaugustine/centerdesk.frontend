@@ -1,0 +1,258 @@
+<!-- Success modal -->
+@if (isSuccess()) {
+  <div class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl dark:bg-gray-900">
+      <!-- Check icon -->
+      <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-success-50 dark:bg-success-500/10">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="text-success-500">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M20.707 5.293a1 1 0 010 1.414l-11 11a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L9 15.586 19.293 5.293a1 1 0 011.414 0z" fill="currentColor"/>
+        </svg>
+      </div>
+      <h3 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white/90">Tenant Registered!</h3>
+      <p class="mb-1 text-sm text-gray-500 dark:text-gray-400">The tenant has been successfully created.</p>
+      <p class="mb-6 text-sm text-gray-400 dark:text-gray-500">Redirecting to tenant list in <span class="font-semibold text-brand-500">{{ countdown() }}</span> second{{ countdown() === 1 ? '' : 's' }}…</p>
+      <button
+        (click)="goToTenants()"
+        class="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+      >
+        Go to Tenants Now
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Page header -->
+<div class="mb-6 flex items-center gap-3">
+  <a routerLink="/tenants"
+    class="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-white/5 transition-colors">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M15.7071 5.29289C16.0976 5.68342 16.0976 6.31658 15.7071 6.70711L10.4142 12L15.7071 17.2929C16.0976 17.6834 16.0976 18.3166 15.7071 18.7071C15.3166 19.0976 14.6834 19.0976 14.2929 18.7071L8.29289 12.7071C7.90237 12.3166 7.90237 11.6834 8.29289 11.2929L14.2929 5.29289C14.6834 4.90237 15.3166 4.90237 15.7071 5.29289Z"
+        fill="currentColor" />
+    </svg>
+  </a>
+  <div>
+    <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Add Tenant</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Register a new tenant and initiate payment</p>
+  </div>
+</div>
+
+<!-- Error banner -->
+@if (error()) {
+<div
+  class="mb-5 rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-600 dark:border-error-800 dark:bg-error-950 dark:text-error-400">
+  {{ error() }}
+</div>
+}
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+
+    <!-- ── Company Information ── -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+      <h2 class="mb-5 text-base font-semibold text-gray-800 dark:text-white/90">Company Information</h2>
+      <div class="flex flex-col gap-4">
+
+        <!-- Company name -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Company Name <span class="text-error-500">*</span>
+          </label>
+          <input type="text" formControlName="companyName" placeholder="Acme Corp"
+            class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+            [ngClass]="hasError('companyName')
+              ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+              : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+          @if (hasError('companyName')) {
+          <p class="mt-1 text-xs text-error-500">{{ fieldError('companyName') }}</p>
+          }
+        </div>
+
+        <!-- Slug -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Slug <span class="text-error-500">*</span>
+          </label>
+          <input type="text" formControlName="slug" placeholder="acme-corp"
+            class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+            [ngClass]="hasError('slug')
+              ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+              : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+          <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Auto-filled from company name. Lowercase letters,
+            numbers and hyphens only.</p>
+          @if (hasError('slug')) {
+          <p class="mt-1 text-xs text-error-500">{{ fieldError('slug') }}</p>
+          }
+        </div>
+
+        <!-- Industry -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Industry <span class="text-error-500">*</span>
+          </label>
+          <input type="text" formControlName="industry" placeholder="e.g. Finance, Healthcare, Retail"
+            class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+            [ngClass]="hasError('industry')
+              ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+              : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+          @if (hasError('industry')) {
+          <p class="mt-1 text-xs text-error-500">{{ fieldError('industry') }}</p>
+          }
+        </div>
+
+        <!-- Phone -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Phone Number <span class="text-error-500">*</span>
+          </label>
+          <input type="tel" formControlName="phoneNumber" placeholder="+234 800 000 0000"
+            class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+            [ngClass]="hasError('phoneNumber')
+              ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+              : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+          @if (hasError('phoneNumber')) {
+          <p class="mt-1 text-xs text-error-500">{{ fieldError('phoneNumber') }}</p>
+          }
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Admin Account ── -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+      <h2 class="mb-5 text-base font-semibold text-gray-800 dark:text-white/90">Admin Account</h2>
+      <div class="flex flex-col gap-4">
+
+        <!-- First / Last name row -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              First Name <span class="text-error-500">*</span>
+            </label>
+            <input type="text" formControlName="adminFirstName" placeholder="John"
+              class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+              [ngClass]="hasError('adminFirstName')
+                ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+                : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+            @if (hasError('adminFirstName')) {
+            <p class="mt-1 text-xs text-error-500">{{ fieldError('adminFirstName') }}</p>
+            }
+          </div>
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Last Name <span class="text-error-500">*</span>
+            </label>
+            <input type="text" formControlName="adminLastName" placeholder="Doe"
+              class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+              [ngClass]="hasError('adminLastName')
+                ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+                : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+            @if (hasError('adminLastName')) {
+            <p class="mt-1 text-xs text-error-500">{{ fieldError('adminLastName') }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Admin Email <span class="text-error-500">*</span>
+          </label>
+          <input type="email" formControlName="adminEmail" placeholder="admin@company.com"
+            class="h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:text-white/90 dark:placeholder:text-white/30 transition-colors"
+            [ngClass]="hasError('adminEmail')
+              ? 'border-error-300 bg-error-50 focus:border-error-400 focus:ring-error-200 dark:border-error-700 dark:bg-error-950'
+              : 'border-gray-300 bg-white focus:border-brand-400 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900'" />
+          @if (hasError('adminEmail')) {
+          <p class="mt-1 text-xs text-error-500">{{ fieldError('adminEmail') }}</p>
+          }
+        </div>
+
+
+      </div>
+    </div>
+
+    <!-- ── Plan & Billing ── -->
+    <div
+      class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] lg:col-span-2">
+      <h2 class="mb-5 text-base font-semibold text-gray-800 dark:text-white/90">Plan & Billing</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+        <!-- Plan -->
+        <!-- Plan -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Plan <span class="text-error-500">*</span>
+          </label>
+          <div class="relative">
+            <select formControlName="planId"
+              class="h-11 w-full rounded-lg border px-4 pr-10 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none"
+              [ngClass]="hasError('planId')
+        ? 'border-error-300 bg-error-50 text-gray-800 dark:border-error-700 dark:bg-error-950 dark:text-white/90'
+        : 'border-gray-300 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90'">
+              <option [ngValue]="null" disabled>{{ plansLoading() ? 'Loading plans…' : 'Select a plan' }}</option>
+              @for (plan of plans(); track plan.id) {
+              <option [ngValue]="plan.id">{{ plan.name }}{{ plan.description ? ' — ' + plan.description : '' }}</option>
+              }
+            </select>
+            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+              xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              aria-hidden="true">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M5.293 8.293a1 1 0 011.414 0L12 13.586l5.293-5.293a1 1 0 111.414 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414z"
+                fill="#6B7280" />
+            </svg>
+          </div>
+          @if (hasError('planId')) {
+          <p class="mt-1 text-xs text-error-500">{{ fieldError('planId') }}</p>
+          }
+        </div>
+
+        <!-- Billing cycle -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Billing Cycle <span class="text-error-500">*</span>
+          </label>
+          <div class="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden h-11">
+            <button type="button" (click)="setBillingCycle('monthly')"
+              class="flex-1 text-sm font-medium transition-colors" [ngClass]="billingCycle() === 'monthly'
+                ? 'bg-brand-500 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/5'">
+              Monthly
+            </button>
+            <button type="button" (click)="setBillingCycle('yearly')"
+              class="flex-1 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-700"
+              [ngClass]="billingCycle() === 'yearly'
+                ? 'bg-brand-500 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/5'">
+              Yearly
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Actions -->
+  <div class="mt-5 flex items-center justify-end gap-3">
+    <a routerLink="/tenants"
+      class="px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5 transition-colors">
+      Cancel
+    </a>
+    <button type="submit" [disabled]="isSubmitting()"
+      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-500 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
+      @if (isSubmitting()) {
+      <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+      </svg>
+      Registering…
+      } @else {
+      Register & Pay
+      }
+    </button>
+  </div>
+
+</form>

@@ -1,0 +1,137 @@
+@if (summaryError()) {
+  <div class="mb-6 rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-600 dark:border-error-800 dark:bg-error-950 dark:text-error-400">
+    {{ summaryError() }}
+  </div>
+}
+
+<!-- Stat Cards -->
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 md:gap-6">
+
+  <!-- Total Tenants -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex items-center justify-center w-12 h-12 bg-brand-50 rounded-xl dark:bg-brand-500/10">
+      <svg class="text-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4.75C6.20508 4.75 4.75 6.20508 4.75 8C4.75 9.79492 6.20508 11.25 8 11.25C9.79492 11.25 11.25 9.79492 11.25 8C11.25 6.20508 9.79492 4.75 8 4.75ZM3.25 8C3.25 5.37665 5.37665 3.25 8 3.25C10.6234 3.25 12.75 5.37665 12.75 8C12.75 10.6234 10.6234 12.75 8 12.75C5.37665 12.75 3.25 10.6234 3.25 8ZM15.75 5C15.75 4.58579 16.0858 4.25 16.5 4.25C18.8472 4.25 20.75 6.15279 20.75 8.5C20.75 10.8472 18.8472 12.75 16.5 12.75C16.0858 12.75 15.75 12.4142 15.75 12C15.75 11.5858 16.0858 11.25 16.5 11.25C18.0188 11.25 19.25 10.0188 19.25 8.5C19.25 6.98122 18.0188 5.75 16.5 5.75C16.0858 5.75 15.75 5.41421 15.75 5ZM7 12.75C4.92893 12.75 3.25 14.4289 3.25 16.5V19C3.25 20.2426 4.25736 21.25 5.5 21.25H10.5C11.7426 21.25 12.75 20.2426 12.75 19V16.5C12.75 14.4289 11.0711 12.75 9 12.75H7ZM13.25 16.5C13.25 14.4289 14.9289 12.75 17 12.75H19C21.0711 12.75 22.75 14.4289 22.75 16.5V19C22.75 20.2426 21.7426 21.25 20.5 21.25H15.5C14.2574 21.25 13.25 20.2426 13.25 19V16.5ZM17 14.25C15.7574 14.25 14.75 15.2574 14.75 16.5V19C14.75 19.4142 15.0858 19.75 15.5 19.75H20.5C20.9142 19.75 21.25 19.4142 21.25 19V16.5C21.25 15.2574 20.2426 14.25 19 14.25H17Z" fill="currentColor" />
+      </svg>
+    </div>
+    <div class="mt-5">
+      @if (summaryLoading()) {
+        <div class="h-8 w-16 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+      } @else {
+        <span class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ summary()?.totalTenants ?? 0 }}</span>
+      }
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Total Tenants</p>
+    </div>
+  </div>
+
+  <!-- Active Plans -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex items-center justify-center w-12 h-12 bg-success-50 rounded-xl dark:bg-success-500/10">
+      <svg class="text-success-500" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M5.5 3.25C4.25736 3.25 3.25 4.25736 3.25 5.5V18.5C3.25 19.7426 4.25736 20.75 5.5 20.75H18.5001C19.7427 20.75 20.7501 19.7426 20.7501 18.5V5.5C20.7501 4.25736 19.7427 3.25 18.5001 3.25H5.5ZM4.75 5.5C4.75 5.08579 5.08579 4.75 5.5 4.75H18.5001C18.9143 4.75 19.2501 5.08579 19.2501 5.5V18.5C19.2501 18.9142 18.9143 19.25 18.5001 19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5V5.5ZM6.25005 9.7143C6.25005 9.30008 6.58583 8.9643 7.00005 8.9643L17 8.96429C17.4143 8.96429 17.75 9.30008 17.75 9.71429C17.75 10.1285 17.4143 10.4643 17 10.4643L7.00005 10.4643C6.58583 10.4643 6.25005 10.1285 6.25005 9.7143ZM6.25005 14.2857C6.25005 13.8715 6.58583 13.5357 7.00005 13.5357H17C17.4143 13.5357 17.75 13.8715 17.75 14.2857C17.75 14.6999 17.4143 15.0357 17 15.0357H7.00005C6.58583 15.0357 6.25005 14.6999 6.25005 14.2857Z" fill="currentColor" />
+      </svg>
+    </div>
+    <div class="mt-5">
+      @if (summaryLoading()) {
+        <div class="h-8 w-16 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+      } @else {
+        <span class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ summary()?.totalActivePlans ?? 0 }}</span>
+      }
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Active Plans</p>
+    </div>
+  </div>
+
+  <!-- Active Subscriptions -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex items-center justify-center w-12 h-12 bg-warning-50 rounded-xl dark:bg-warning-500/10">
+      <svg class="text-warning-500" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M3.25 8C3.25 6.20508 4.75736 4.75 6.5 4.75H17.5C19.2426 4.75 20.75 6.20508 20.75 8V16C20.75 17.7949 19.2426 19.25 17.5 19.25H6.5C4.75736 19.25 3.25 17.7949 3.25 16V8ZM6.5 6.25C5.55736 6.25 4.75 7.03934 4.75 8V9.25H19.25V8C19.25 7.03934 18.4426 6.25 17.5 6.25H6.5ZM19.25 10.75H4.75V16C4.75 16.9607 5.55736 17.75 6.5 17.75H17.5C18.4426 17.75 19.25 16.9607 19.25 16V10.75ZM6.25 14.5C6.25 14.0858 6.58579 13.75 7 13.75H10C10.4142 13.75 10.75 14.0858 10.75 14.5C10.75 14.9142 10.4142 15.25 10 15.25H7C6.58579 15.25 6.25 14.9142 6.25 14.5Z" fill="currentColor" />
+      </svg>
+    </div>
+    <div class="mt-5">
+      @if (summaryLoading()) {
+        <div class="h-8 w-16 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+      } @else {
+        <span class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ summary()?.totalActiveSubscriptions ?? 0 }}</span>
+      }
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Active Subscriptions</p>
+    </div>
+  </div>
+
+  <!-- Monthly Revenue -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex items-center justify-center w-12 h-12 bg-error-50 rounded-xl dark:bg-error-500/10">
+      <svg class="text-error-500" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M3.25 12C3.25 7.16751 7.16751 3.25 12 3.25C16.8325 3.25 20.75 7.16751 20.75 12C20.75 16.8325 16.8325 20.75 12 20.75C7.16751 20.75 3.25 16.8325 3.25 12ZM12 4.75C7.99594 4.75 4.75 7.99594 4.75 12C4.75 16.0041 7.99594 19.25 12 19.25C16.0041 19.25 19.25 16.0041 19.25 12C19.25 7.99594 16.0041 4.75 12 4.75ZM12.75 8C12.75 7.58579 12.4142 7.25 12 7.25C11.5858 7.25 11.25 7.58579 11.25 8V8.54956C10.0728 8.78225 9.25 9.73972 9.25 10.875C9.25 12.1334 10.2918 13.0762 11.5049 13.2375L12.6491 13.3887C13.2384 13.4665 13.75 13.8921 13.75 14.5C13.75 15.1475 13.2084 15.75 12.5 15.75H11.5C10.8416 15.75 10.25 15.3 10.25 14.5C10.25 14.0858 9.91421 13.75 9.5 13.75C9.08579 13.75 8.75 14.0858 8.75 14.5C8.75 15.9612 9.86779 17.0888 11.25 17.3628V18C11.25 18.4142 11.5858 18.75 12 18.75C12.4142 18.75 12.75 18.4142 12.75 18V17.4504C13.9272 17.2178 14.75 16.2603 14.75 15.125C14.75 13.4458 13.2958 12.5 12 12.5H11.5C10.9665 12.5 10.25 12.0334 10.25 11.25C10.25 10.6026 10.7916 10 11.5 10H12.5C13.1584 10 13.75 10.45 13.75 11.25C13.75 11.6642 14.0858 12 14.5 12C14.9142 12 15.25 11.6642 15.25 11.25C15.25 9.78879 14.1322 8.66118 12.75 8.38718V8Z" fill="currentColor" />
+      </svg>
+    </div>
+    <div class="mt-5">
+      @if (summaryLoading()) {
+        <div class="h-8 w-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+      } @else {
+        <span class="text-2xl font-bold text-gray-800 dark:text-white/90">
+          {{ summary() ? formatNaira(summary()!.currentMonthlyRevenueNaira) : '₦0' }}
+        </span>
+      }
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recent Tenants -->
+<div class="mt-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+  <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+    <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Recent Tenants</h3>
+    <a routerLink="/tenants" class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400">View all</a>
+  </div>
+
+  @if (tenantsLoading()) {
+    <!-- Skeleton rows -->
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+      @for (_ of [1, 2, 3]; track $index) {
+        <div class="flex items-center gap-4 px-6 py-4">
+          <div class="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+          <div class="h-4 w-40 animate-pulse rounded bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+          <div class="ml-auto h-6 w-16 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700"></div>
+        </div>
+      }
+    </div>
+  } @else if (recentTenants().length === 0) {
+    <div class="px-6 py-12 text-center">
+      <p class="text-sm text-gray-400 dark:text-gray-500">No tenants have been created yet.</p>
+    </div>
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100 dark:border-gray-800">
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider dark:text-gray-500">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider dark:text-gray-500 hidden sm:table-cell">Email</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider dark:text-gray-500 hidden md:table-cell">Plan</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider dark:text-gray-500 hidden lg:table-cell">Joined</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider dark:text-gray-500">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          @for (tenant of recentTenants(); track tenant.id) {
+            <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+              <td class="px-6 py-4">
+                <div class="font-medium text-gray-800 dark:text-white/90">{{ tenant.name }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500">{{ tenant.slug }}</div>
+              </td>
+              <td class="px-6 py-4 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ tenant.adminEmail }}</td>
+              <td class="px-6 py-4 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ tenant.currentPlan ?? '—' }}</td>
+              <td class="px-6 py-4 text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ formatDate(tenant.createdAt) }}</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ statusClass(tenant.status) }}">
+                  {{ TENANT_STATUS_LABEL[tenant.status] }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
