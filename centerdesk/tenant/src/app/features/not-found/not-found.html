@@ -1,0 +1,58 @@
+<div class="relative min-h-screen bg-white dark:bg-gray-900 flex flex-col items-center justify-center px-6 overflow-hidden">
+
+  <!-- Background grid decoration -->
+  <div class="pointer-events-none absolute inset-0 -z-10">
+    <div class="absolute right-0 top-0 w-72 opacity-40 dark:opacity-20">
+      <img src="/images/shape/grid-01.svg" alt="" />
+    </div>
+    <div class="absolute bottom-0 left-0 w-72 rotate-180 opacity-40 dark:opacity-20">
+      <img src="/images/shape/grid-01.svg" alt="" />
+    </div>
+  </div>
+
+  <!-- Icon -->
+  <div class="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-error-50 dark:bg-error-500/10">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2ZM0 12C0 5.373 5.373 0 12 0s12 5.373 12 12-5.373 12-12 12S0 18.627 0 12Z"
+        class="fill-error-300 dark:fill-error-500" />
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M12 7a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1ZM11 16a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1Z"
+        class="fill-error-500 dark:fill-error-400" />
+    </svg>
+  </div>
+
+  <!-- Heading -->
+  <h1 class="mb-3 text-center text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
+    Workspace not found
+  </h1>
+
+  <!-- Slug callout -->
+  @if (slug()) {
+    <div class="mb-4 flex items-center gap-2 rounded-lg border border-error-200 bg-error-50 px-4 py-2 dark:border-error-800 dark:bg-error-500/10">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0">
+        <path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+          class="stroke-error-500 dark:stroke-error-400" />
+      </svg>
+      <span class="text-sm font-medium text-error-700 dark:text-error-300">
+        <span class="font-mono">{{ slug() }}</span>
+      </span>
+    </div>
+  }
+
+  <!-- Description -->
+  <p class="mb-8 max-w-md text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+    The workspace <strong class="text-gray-700 dark:text-gray-300">{{ slug() ?? 'you requested' }}</strong>
+    doesn't exist or has been removed. Double-check the address or contact your administrator.
+  </p>
+
+  <!-- Divider -->
+  <div class="mb-8 h-px w-full max-w-xs bg-gray-200 dark:bg-gray-700"></div>
+
+  <!-- Help text -->
+  <p class="text-xs text-gray-400 dark:text-gray-500">
+    Looking for your workspace? Check the URL and make sure the subdomain is correct.
+  </p>
+
+</div>

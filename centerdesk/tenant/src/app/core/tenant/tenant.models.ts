@@ -1,5 +1,8 @@
 export interface Tenant {
-  id: string;
-  name: string;
-  domain: string;
+  slug: string;
+}
+
+export interface SlugCheckContent {
+  available: boolean;
+  slug: string;
 }

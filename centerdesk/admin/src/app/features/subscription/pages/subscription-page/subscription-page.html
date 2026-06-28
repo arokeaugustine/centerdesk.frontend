@@ -77,28 +77,28 @@
             <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
 
               <td class="px-5 py-4">
-                <span class="block font-medium text-gray-800 dark:text-white/90">{{ sub.name }}</span>
-                <span class="block text-xs text-gray-400 dark:text-gray-500">{{ sub.slug }}</span>
+                <span class="block font-medium text-gray-800 dark:text-white/90">{{ sub.tenant.name }}</span>
+                <span class="block text-xs text-gray-400 dark:text-gray-500">{{ sub.tenant.slug }}</span>
               </td>
 
               <td class="px-5 py-4 text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                {{ sub.adminEmail }}
+                {{ sub.tenant.adminEmail }}
               </td>
 
               <td class="px-5 py-4 text-gray-500 dark:text-gray-400 hidden md:table-cell">
-                {{ sub.currentPlan ?? '—' }}
+                {{ sub.plan.name }}
               </td>
 
               <td class="px-5 py-4 text-gray-500 dark:text-gray-400 hidden lg:table-cell">
-                {{ sub.activatedAt ? formatDate(sub.activatedAt) : '—' }}
+                {{ formatDate(sub.startDate) }}
               </td>
 
               <td class="px-5 py-4">
                 <span
                   class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  [ngClass]="subscriptionBadgeClass(sub.subscriptionStatus)"
+                  [ngClass]="subscriptionBadgeClass(sub.status)"
                 >
-                  {{ sub.subscriptionStatus ?? '—' }}
+                  {{ subscriptionStatusLabel(sub.status) }}
                 </span>
               </td>
 

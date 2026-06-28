@@ -15,6 +15,8 @@ import { tenantInterceptor } from './core/http/tenant.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { TenantService } from './core/tenant/tenant.service';
 import { GlobalErrorHandler } from './core/handlers/error.handler';
+import { API_BASE_URL } from './core/config/api.config';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,5 +28,6 @@ export const appConfig: ApplicationConfig = {
     ),
     provideAppInitializer(() => inject(TenantService).init()),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    { provide: API_BASE_URL, useValue: environment.apiBaseUrl },
   ],
 };

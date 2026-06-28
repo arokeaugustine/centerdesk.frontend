@@ -1,12 +1,10 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { Tenant } from './tenant.models';
+import { Injectable, inject, computed } from '@angular/core';
+import { TenantService } from './tenant.service';
 
 @Injectable({ providedIn: 'root' })
 export class TenantStore {
-  readonly tenant = signal<Tenant | null>(null);
-  readonly tenantId = computed(() => this.tenant()?.id ?? null);
+  private readonly tenantService = inject(TenantService);
 
-  setTenant(tenant: Tenant): void {
-    this.tenant.set(tenant);
-  }
+  readonly tenant = this.tenantService.tenant;
+  readonly tenantSlug = computed(() => this.tenantService.tenant()?.slug ?? null);
 }

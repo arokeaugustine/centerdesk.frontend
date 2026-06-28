@@ -12,7 +12,7 @@ import { Paging } from '../../../../core/auth/auth.models';
 export class SubscriptionPage {
   private readonly subscriptionService = inject(SubscriptionService);
 
-  protected readonly PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+  protected readonly PAGE_SIZE_OPTIONS = [2, 10, 20, 50, 100];
 
   protected readonly subscriptions = signal<SubscriptionItem[]>([]);
   protected readonly paging = signal<Paging | null>(null);
@@ -89,13 +89,23 @@ export class SubscriptionPage {
     return new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
   }
 
-  protected subscriptionBadgeClass(status: string | null): string {
-    switch (status?.toLowerCase()) {
-      case 'active':    return 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400';
-      case 'trial':     return 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400';
-      case 'expired':   return 'bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-400';
-      case 'cancelled': return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
-      default:          return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+  protected subscriptionStatusLabel(status: number): string {
+    switch (status) {
+      case 0:  return 'Trial';
+      case 1:  return 'Active';
+      case 2:  return 'Expired';
+      case 3:  return 'Cancelled';
+      default: return 'Unknown';
+    }
+  }
+
+  protected subscriptionBadgeClass(status: number): string {
+    switch (status) {
+      case 1:  return 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400';
+      case 0:  return 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400';
+      case 2:  return 'bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-400';
+      case 3:  return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+      default: return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
     }
   }
 }
