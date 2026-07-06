@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { decodeJwtPayload } from '../../../../core/auth/permission.service';
 import { Button } from '../../../../shared/components/button/button';
 import { Checkbox } from '../../../../shared/components/checkbox/checkbox';
 import { InputField } from '../../../../shared/components/input-field/input-field';
@@ -45,13 +46,15 @@ export class LoginPage {
     this.authService.login(email!, password!).subscribe({
       next: (res) => {
         if (res.success) {
+          const claims = decodeJwtPayload(res.content.accessToken);
+          const role = claims['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] as string | undefined;
           this.authService.setAuth(
             {
-              id: '',
+              id: (claims['uid'] as string) ?? '',
               email: res.content.email,
               userName: res.content.userName,
-              roles: [],
-              userType: '',
+              roles: role ? [role] : [],
+              userType: (claims['user-type'] as string) ?? '',
             },
             res.content.accessToken,
             res.content.refreshToken,

@@ -1,3 +1,22 @@
+export enum AdminPermission {
+  CanViewTenants = 0x10,
+  CanProfileTenant = 0x11,
+  CanSuspendTenant = 0x12,
+  CanReactivateTenant = 0x13,
+  CanViewSubscriptions = 0x20,
+  CanManageSubscriptions = 0x21,
+  CanViewInvoices = 0x22,
+  CanViewPlans = 0x30,
+  CanManagePlans = 0x31,
+  CanViewAdmins = 0x40,
+  CanCreateAdmin = 0x41,
+  CanUpdateAdmin = 0x42,
+  CanDeactivateAdmin = 0x43,
+  CanManageAdminPermissions = 0x44,
+  CanViewSystemConfig = 0x50,
+  CanManageSystemConfig = 0x51,
+}
+
 export interface User {
   id: string;
   email: string;
