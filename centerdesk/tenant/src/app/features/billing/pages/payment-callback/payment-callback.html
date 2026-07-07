@@ -1,0 +1,92 @@
+<div class="flex min-h-[60vh] items-center justify-center p-6">
+  <div class="w-full max-w-md">
+
+    <!-- Verifying -->
+    @if (isVerifying()) {
+      <div class="flex flex-col items-center gap-4 text-center">
+        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-500/10">
+          <svg class="animate-spin text-brand-500" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Verifying your payment…</h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Please wait while we confirm your transaction with Paystack.</p>
+        </div>
+      </div>
+    }
+
+    <!-- Success -->
+    @if (!isVerifying() && isSuccess()) {
+      <div class="rounded-2xl border border-success-200 bg-white dark:border-success-500/20 dark:bg-white/[0.03]">
+        <div class="flex flex-col items-center gap-4 p-8 text-center">
+          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-success-50 dark:bg-success-500/10">
+            <svg class="text-success-500" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M16 3C8.82 3 3 8.82 3 16s5.82 13 13 13 13-5.82 13-13S23.18 3 16 3zm5.707 10.293a1 1 0 0 0-1.414-1.414L14 19.172l-2.293-2.293a1 1 0 0 0-1.414 1.414l3 3a1 1 0 0 0 1.414 0l7-7z" fill="currentColor"/>
+            </svg>
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">Payment Successful!</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your subscription has been updated.</p>
+          </div>
+
+          @if (verifyResult(); as result) {
+            <div class="w-full rounded-xl bg-gray-50 px-5 py-4 text-left dark:bg-white/5">
+              <dl class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Plan</dt>
+                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ result.planName }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Billing Cycle</dt>
+                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ result.billingCycle }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Amount Charged</dt>
+                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ formatCurrency(result.amountNaira) }}</dd>
+                </div>
+              </dl>
+            </div>
+          }
+
+          <button
+            (click)="goToBilling()"
+            class="mt-2 w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+          >
+            View Subscription
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Failure -->
+    @if (!isVerifying() && !isSuccess()) {
+      <div class="rounded-2xl border border-error-200 bg-white dark:border-error-500/20 dark:bg-white/[0.03]">
+        <div class="flex flex-col items-center gap-4 p-8 text-center">
+          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-error-50 dark:bg-error-500/10">
+            <svg class="text-error-500" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M16 3C8.82 3 3 8.82 3 16s5.82 13 13 13 13-5.82 13-13S23.18 3 16 3zm-1 8a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0v-5zm1 9a1.25 1.25 0 1 0 0-2.5A1.25 1.25 0 0 0 16 20z" fill="currentColor"/>
+            </svg>
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">Verification Failed</h2>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ errorMessage() }}</p>
+          </div>
+
+          <div class="flex w-full flex-col gap-3">
+            <button
+              (click)="goToBilling()"
+              class="w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+            >
+              Go to Billing
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

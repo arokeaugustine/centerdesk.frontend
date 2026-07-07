@@ -1,0 +1,336 @@
+<!-- Loading skeleton -->
+@if (isLoading()) {
+  <div class="space-y-6 animate-pulse">
+    <div class="h-44 rounded-2xl bg-gray-100 dark:bg-gray-800"></div>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="h-80 rounded-2xl bg-gray-100 dark:bg-gray-800"></div>
+      <div class="h-80 rounded-2xl bg-gray-100 dark:bg-gray-800"></div>
+      <div class="h-80 rounded-2xl bg-gray-100 dark:bg-gray-800"></div>
+    </div>
+  </div>
+}
+
+<!-- Load error -->
+@if (!isLoading() && loadError()) {
+  <div class="rounded-2xl border border-error-200 bg-error-50 p-6 dark:border-error-500/20 dark:bg-error-500/10">
+    <p class="text-sm font-medium text-error-600 dark:text-error-400">{{ loadError() }}</p>
+    <button (click)="ngOnInit()" class="mt-3 text-sm font-semibold text-error-600 underline hover:no-underline dark:text-error-400">
+      Try again
+    </button>
+  </div>
+}
+
+<!-- Content -->
+@if (!isLoading() && !loadError()) {
+
+  <!-- Current Subscription -->
+  <div class="mb-6">
+    <h2 class="mb-4 text-base font-semibold text-gray-800 dark:text-white/90">Current Subscription</h2>
+
+    @if (subscription(); as sub) {
+      <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+
+          <!-- Plan icon + info -->
+          <div class="flex items-start gap-4">
+            <div class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/10">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-brand-500">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M3.25 6.5C3.25 5.25736 4.25736 4.25 5.5 4.25H18.5C19.7426 4.25 20.75 5.25736 20.75 6.5V17.5C20.75 18.7426 19.7426 19.75 18.5 19.75H5.5C4.25736 19.75 3.25 18.7426 3.25 17.5V6.5ZM4.75 9.25V17.5C4.75 17.9142 5.08579 18.25 5.5 18.25H18.5C18.9142 18.25 19.25 17.9142 19.25 17.5V9.25H4.75ZM19.25 7.75H4.75V6.5C4.75 6.08579 5.08579 5.75 5.5 5.75H18.5C18.9142 5.75 19.25 6.08579 19.25 6.5V7.75ZM7 13.25C7 12.8358 7.33579 12.5 7.75 12.5H11.25C11.6642 12.5 12 12.8358 12 13.25C12 13.6642 11.6642 14 11.25 14H7.75C7.33579 14 7 13.6642 7 13.25ZM13.75 13.25C13.75 12.8358 14.0858 12.5 14.5 12.5H16.25C16.6642 12.5 17 12.8358 17 13.25C17 13.6642 16.6642 14 16.25 14H14.5C14.0858 14 13.75 13.6642 13.75 13.25Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white/90">{{ sub.plan.name }}</h3>
+                <app-badge [color]="getStatusColor(sub.status)" size="sm">
+                  {{ getStatusLabel(sub.status) }}
+                </app-badge>
+              </div>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ getCycleLabel(sub.billingCycle) }} billing ·
+                {{ formatCurrency(sub.billingCycle === 2 ? sub.plan.annualPriceNaira : sub.plan.monthlyPriceNaira) }}/{{ sub.billingCycle === 2 ? 'year' : 'month' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Dates + days remaining -->
+          <div class="flex flex-wrap items-center gap-6 sm:gap-8">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Start Date</p>
+              <p class="mt-1 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ formatDate(sub.startDate) }}</p>
+            </div>
+            <div class="w-px h-8 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Renewal Date</p>
+              <p class="mt-1 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ formatDate(sub.renewalDate) }}</p>
+            </div>
+            <div class="w-px h-8 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Days Remaining</p>
+              <p class="mt-1 text-sm font-semibold"
+                [ngClass]="{
+                  'text-success-600 dark:text-success-500': getDaysRemaining() > 14,
+                  'text-warning-600 dark:text-warning-500': getDaysRemaining() > 0 && getDaysRemaining() <= 14,
+                  'text-error-600 dark:text-error-500': getDaysRemaining() === 0
+                }">
+                {{ getDaysRemaining() }} {{ getDaysRemaining() === 1 ? 'day' : 'days' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expiry warning bar -->
+        @if (getDaysRemaining() <= 14 && getDaysRemaining() > 0) {
+          <div class="border-t border-warning-100 bg-warning-50 px-5 py-3 dark:border-warning-500/10 dark:bg-warning-500/5 sm:px-6">
+            <p class="text-sm text-warning-700 dark:text-warning-400">
+              <span class="font-semibold">Heads up!</span> Your subscription renews in {{ getDaysRemaining() }} days. Upgrade or renew to avoid service interruption.
+            </p>
+          </div>
+        }
+        @if (getDaysRemaining() === 0 && sub.status !== 2) {
+          <div class="border-t border-error-100 bg-error-50 px-5 py-3 dark:border-error-500/10 dark:bg-error-500/5 sm:px-6">
+            <p class="text-sm text-error-700 dark:text-error-400">
+              <span class="font-semibold">Renewal due today.</span> Please upgrade or contact support to continue using the service.
+            </p>
+          </div>
+        }
+        @if (sub.status === 2) {
+          <div class="border-t border-error-100 bg-error-50 px-5 py-3 dark:border-error-500/10 dark:bg-error-500/5 sm:px-6">
+            <p class="text-sm text-error-700 dark:text-error-400">
+              <span class="font-semibold">Subscription expired.</span> Select a plan below to renew and restore access.
+            </p>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <p class="text-sm text-gray-500 dark:text-gray-400">No active subscription found. Choose a plan below to get started.</p>
+      </div>
+    }
+  </div>
+
+  <!-- Available Plans -->
+  <div>
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Available Plans</h2>
+    </div>
+
+    @if (plans().length === 0) {
+      <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <p class="text-sm text-gray-500 dark:text-gray-400">No plans available at this time.</p>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        @for (plan of plans(); track plan.id; let i = $index) {
+          <div
+            class="relative flex flex-col rounded-2xl border p-6 transition-shadow"
+            [ngClass]="{
+              'border-brand-500 bg-brand-950 dark:bg-brand-950 shadow-lg': isCurrentPlan(plan),
+              'border-gray-200 bg-white hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03]': !isCurrentPlan(plan)
+            }"
+          >
+            <!-- Popular badge -->
+            @if (isPopularPlan(i) && !isCurrentPlan(plan)) {
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span class="inline-flex items-center rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white">
+                  Most Popular
+                </span>
+              </div>
+            }
+
+            <!-- Plan header -->
+            <div class="mb-5">
+              <h3 class="text-lg font-bold" [ngClass]="isCurrentPlan(plan) ? 'text-white' : 'text-gray-800 dark:text-white/90'">
+                {{ plan.name }}
+              </h3>
+              @if (plan.description) {
+                <p class="mt-1 text-sm" [ngClass]="isCurrentPlan(plan) ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'">
+                  {{ plan.description }}
+                </p>
+              }
+            </div>
+
+            <!-- Pricing -->
+            <div class="mb-5 pb-5" [ngClass]="isCurrentPlan(plan) ? 'border-b border-white/10' : 'border-b border-gray-100 dark:border-gray-800'">
+              <div class="flex items-end gap-1">
+                <span class="text-3xl font-bold" [ngClass]="isCurrentPlan(plan) ? 'text-white' : 'text-gray-800 dark:text-white/90'">
+                  {{ formatCurrency(plan.monthlyPriceNaira) }}
+                </span>
+                <span class="mb-1 text-sm" [ngClass]="isCurrentPlan(plan) ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'">/month</span>
+              </div>
+              @if (plan.annualPriceNaira > 0) {
+                <p class="mt-1 text-xs" [ngClass]="isCurrentPlan(plan) ? 'text-blue-300' : 'text-gray-400 dark:text-gray-500'">
+                  {{ formatCurrency(plan.annualPriceNaira) }}/year when billed annually
+                </p>
+              }
+            </div>
+
+            <!-- Features -->
+            <ul class="mb-6 flex-1 space-y-3">
+              @for (feature of getPlanFeatures(plan); track feature) {
+                <li class="flex items-center gap-2.5 text-sm" [ngClass]="isCurrentPlan(plan) ? 'text-blue-100' : 'text-gray-600 dark:text-gray-400'">
+                  <svg class="flex-shrink-0" [ngClass]="isCurrentPlan(plan) ? 'text-blue-300' : 'text-brand-500'" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M13.5303 4.46967C13.8232 4.76256 13.8232 5.23744 13.5303 5.53033L6.53033 12.5303C6.23744 12.8232 5.76256 12.8232 5.46967 12.5303L2.46967 9.53033C2.17678 9.23744 2.17678 8.76256 2.46967 8.46967C2.76256 8.17678 3.23744 8.17678 3.53033 8.46967L6 10.9393L12.4697 4.46967C12.7626 4.17678 13.2374 4.17678 13.5303 4.46967Z" fill="currentColor"/>
+                  </svg>
+                  {{ feature }}
+                </li>
+              }
+            </ul>
+
+            <!-- CTA -->
+            @if (isCurrentPlan(plan)) {
+              <div class="flex items-center justify-center gap-2 rounded-xl bg-white/10 py-2.5 text-sm font-semibold text-white">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M13.5303 4.46967C13.8232 4.76256 13.8232 5.23744 13.5303 5.53033L6.53033 12.5303C6.23744 12.8232 5.76256 12.8232 5.46967 12.5303L2.46967 9.53033C2.17678 9.23744 2.17678 8.76256 2.46967 8.46967C2.76256 8.17678 3.23744 8.17678 3.53033 8.46967L6 10.9393L12.4697 4.46967C12.7626 4.17678 13.2374 4.17678 13.5303 4.46967Z" fill="currentColor"/>
+                </svg>
+                Current Plan
+              </div>
+            } @else {
+              <button
+                (click)="openUpgradeModal(plan)"
+                class="w-full rounded-xl py-2.5 text-sm font-semibold transition-colors"
+                [ngClass]="{
+                  'bg-brand-500 text-white hover:bg-brand-600': isPopularPlan(i),
+                  'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10': !isPopularPlan(i)
+                }"
+              >
+                {{ subscription() ? 'Upgrade to ' + plan.name : 'Get Started' }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+}
+
+<!-- Upgrade Modal -->
+@if (isModalOpen()) {
+  <div
+    class="fixed inset-0 z-99999 flex items-center justify-center p-4"
+    (click)="closeModal()"
+  >
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+
+    <!-- Modal panel -->
+    <div
+      class="relative w-full max-w-md rounded-2xl bg-white shadow-theme-xl dark:bg-gray-900"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+        <div>
+          <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">
+            Upgrade to {{ selectedPlan()?.name }}
+          </h3>
+          <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Choose your billing cycle</p>
+        </div>
+        <button
+          (click)="closeModal()"
+          [disabled]="isUpgrading()"
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-gray-300"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M3.46967 3.46967C3.76256 3.17678 4.23744 3.17678 4.53033 3.46967L8 6.93934L11.4697 3.46967C11.7626 3.17678 12.2374 3.17678 12.5303 3.46967C12.8232 3.76256 12.8232 4.23744 12.5303 4.53033L9.06066 8L12.5303 11.4697C12.8232 11.7626 12.8232 12.2374 12.5303 12.5303C12.2374 12.8232 11.7626 12.8232 11.4697 12.5303L8 9.06066L4.53033 12.5303C4.23744 12.8232 3.76256 12.8232 3.46967 12.5303C3.17678 12.2374 3.17678 11.7626 3.46967 11.4697L6.93934 8L3.46967 4.53033C3.17678 4.23744 3.17678 3.76256 3.46967 3.46967Z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="px-6 py-5">
+        <!-- Billing cycle toggle -->
+        <div class="mb-5">
+          <p class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Billing Cycle</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              (click)="selectedCycle.set('Monthly')"
+              class="flex flex-col items-start rounded-xl border-2 p-4 text-left transition-colors"
+              [ngClass]="{
+                'border-brand-500 bg-brand-50 dark:bg-brand-500/10': selectedCycle() === 'Monthly',
+                'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-white/5': selectedCycle() !== 'Monthly'
+              }"
+            >
+              <span class="text-sm font-semibold" [ngClass]="selectedCycle() === 'Monthly' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'">
+                Monthly
+              </span>
+              <span class="mt-1 text-sm font-bold" [ngClass]="selectedCycle() === 'Monthly' ? 'text-brand-700 dark:text-brand-300' : 'text-gray-800 dark:text-white/90'">
+                {{ formatCurrency(selectedPlan()?.monthlyPriceNaira ?? 0) }}
+              </span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">per month</span>
+            </button>
+
+            <button
+              (click)="selectedCycle.set('Annual')"
+              class="relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-colors"
+              [ngClass]="{
+                'border-brand-500 bg-brand-50 dark:bg-brand-500/10': selectedCycle() === 'Annual',
+                'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-white/5': selectedCycle() !== 'Annual'
+              }"
+            >
+              @if ((selectedPlan()?.annualPriceNaira ?? 0) > 0) {
+                <span class="absolute right-3 top-3 rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-500/10 dark:text-success-500">
+                  Save more
+                </span>
+              }
+              <span class="text-sm font-semibold" [ngClass]="selectedCycle() === 'Annual' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'">
+                Annual
+              </span>
+              <span class="mt-1 text-sm font-bold" [ngClass]="selectedCycle() === 'Annual' ? 'text-brand-700 dark:text-brand-300' : 'text-gray-800 dark:text-white/90'">
+                {{ formatCurrency(selectedPlan()?.annualPriceNaira ?? 0) }}
+              </span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">per year</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-white/5">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600 dark:text-gray-400">You will be charged</span>
+            <span class="text-base font-bold text-gray-800 dark:text-white/90">
+              {{ formatCurrency(getSelectedPrice()) }}
+              <span class="text-sm font-normal text-gray-400">/{{ selectedCycle() === 'Annual' ? 'year' : 'month' }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Error -->
+        @if (upgradeError()) {
+          <div class="mt-4 rounded-lg bg-error-50 px-4 py-3 text-sm text-error-600 dark:bg-error-500/10 dark:text-error-400">
+            {{ upgradeError() }}
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+        <button
+          (click)="closeModal()"
+          [disabled]="isUpgrading()"
+          class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="proceedToPayment()"
+          [disabled]="isUpgrading()"
+          class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60 transition-colors"
+        >
+          @if (isUpgrading()) {
+            <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Redirecting to Paystack...
+          } @else {
+            Proceed to Payment
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M3.25 8C3.25 7.58579 3.58579 7.25 4 7.25H10.1893L7.46967 4.53033C7.17678 4.23744 7.17678 3.76256 7.46967 3.46967C7.76256 3.17678 8.23744 3.17678 8.53033 3.46967L12.5303 7.46967C12.8232 7.76256 12.8232 8.23744 12.5303 8.53033L8.53033 12.5303C8.23744 12.8232 7.76256 12.8232 7.46967 12.5303C7.17678 12.2374 7.17678 11.7626 7.46967 11.4697L10.1893 8.75H4C3.58579 8.75 3.25 8.41421 3.25 8Z" fill="currentColor"/>
+            </svg>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

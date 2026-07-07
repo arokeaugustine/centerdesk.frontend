@@ -1,0 +1,242 @@
+<div class="p-4 md:p-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Tickets</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ totalItems() }} total</p>
+    </div>
+    @if (canCreate()) {
+      <app-button size="sm" (btnClick)="openCreate()">New Ticket</app-button>
+    }
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-wrap items-center gap-3 mb-6 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="flex-1 min-w-[220px]">
+      <input
+        type="text"
+        placeholder="Search by ticket #, subject, or sender email…"
+        [value]="searchTerm"
+        (input)="searchTerm = $any($event.target).value"
+        (keyup.enter)="onSearch()"
+        class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+      />
+    </div>
+    <select
+      [value]="filterStatus"
+      (change)="onStatusChange($event)"
+      class="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+    >
+      @for (opt of statusOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+    <select
+      [value]="filterPriority"
+      (change)="onPriorityChange($event)"
+      class="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+    >
+      @for (opt of priorityOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+    <app-button size="sm" (btnClick)="onSearch()">Search</app-button>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+      </div>
+    } @else if (tickets().length === 0) {
+      <div class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
+        <svg class="h-12 w-12 mb-3" viewBox="0 0 24 24" fill="none">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M8.25 3.75A.75.75 0 0 1 9 3h6a.75.75 0 0 1 .75.75v1.5A.75.75 0 0 1 15 6H9a.75.75 0 0 1-.75-.75v-1.5ZM6.75 4.5H5.5A2.25 2.25 0 0 0 3.25 6.75v13A2.25 2.25 0 0 0 5.5 22h13a2.25 2.25 0 0 0 2.25-2.25v-13A2.25 2.25 0 0 0 18.5 4.5h-1.25v.75A2.25 2.25 0 0 1 15 7.5H9A2.25 2.25 0 0 1 6.75 5.25V4.5ZM7.5 10.5a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75Zm.75 3.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.75Z" fill="currentColor"/>
+        </svg>
+        <p class="text-sm font-medium">No tickets found</p>
+        <p class="text-xs mt-1">Try adjusting your filters or create a new ticket</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ticket #</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subject / Sender</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Assigned To</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            @for (ticket of tickets(); track ticket.uid) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                <td class="px-4 py-3">
+                  <span class="font-mono text-xs font-medium text-gray-900 dark:text-white">{{ ticket.ticketNumber }}</span>
+                </td>
+                <td class="px-4 py-3 max-w-[260px]">
+                  <p class="font-medium text-gray-900 dark:text-white truncate">{{ ticket.subject }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ ticket.senderName }} &lt;{{ ticket.senderEmail }}&gt;</p>
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [ngClass]="statusBadgeClass(ticket.status)"
+                  >
+                    {{ statusLabel(ticket.status) }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [ngClass]="priorityBadgeClass(ticket.priority)"
+                  >
+                    {{ priorityLabel(ticket.priority) }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                  {{ assignedToLabel(ticket) }}
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  {{ formatDate(ticket.createdAt) }}
+                </td>
+                <td class="px-4 py-3 text-right">
+                  @if (canViewDetails()) {
+                    <button
+                      (click)="viewTicket(ticket)"
+                      class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
+                    >
+                      View →
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-800">
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Page {{ currentPage() }} · {{ totalItems() }} total
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            (click)="prevPage()"
+            [disabled]="!hasPreviousPage()"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Previous
+          </button>
+          <button
+            (click)="nextPage()"
+            [disabled]="!hasNextPage()"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Create Ticket Modal -->
+@if (showCreateModal()) {
+  <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50" (click)="closeCreate()"></div>
+    <div class="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">New Ticket</h2>
+        <button
+          (click)="closeCreate()"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+        @if (formError()) {
+          <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">
+            {{ formError() }}
+          </div>
+        }
+        <form [formGroup]="createForm" (ngSubmit)="onSubmit()" class="space-y-4">
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <app-label>Sender Name <span class="text-error-500">*</span></app-label>
+              <app-input-field placeholder="John Smith" formControlName="senderName" />
+              @if (createForm.get('senderName')?.invalid && createForm.get('senderName')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Required</p>
+              }
+            </div>
+            <div>
+              <app-label>Sender Email <span class="text-error-500">*</span></app-label>
+              <app-input-field type="email" placeholder="john@example.com" formControlName="senderEmail" />
+              @if (createForm.get('senderEmail')?.invalid && createForm.get('senderEmail')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Valid email required</p>
+              }
+            </div>
+          </div>
+
+          <div>
+            <app-label>Subject <span class="text-error-500">*</span></app-label>
+            <app-input-field placeholder="Brief description of the issue" formControlName="subject" />
+            @if (createForm.get('subject')?.invalid && createForm.get('subject')?.touched) {
+              <p class="mt-1 text-xs text-error-500">Required</p>
+            }
+          </div>
+
+          <div>
+            <app-label>Priority <span class="text-error-500">*</span></app-label>
+            <select
+              formControlName="priority"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              @for (opt of priorityOptions.slice(1); track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <app-label>Message <span class="text-error-500">*</span></app-label>
+            <textarea
+              formControlName="body"
+              rows="5"
+              placeholder="Describe the issue in detail…"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+            ></textarea>
+            @if (createForm.get('body')?.invalid && createForm.get('body')?.touched) {
+              <p class="mt-1 text-xs text-error-500">Required</p>
+            }
+          </div>
+
+        </form>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <button
+          (click)="closeCreate()"
+          class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          Cancel
+        </button>
+        <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onSubmit()">
+          Create Ticket
+        </app-button>
+      </div>
+
+    </div>
+  </div>
+}
