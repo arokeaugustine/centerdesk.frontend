@@ -1,11 +1,11 @@
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { BillingService } from '../../services/billing.service';
 import { VerifyResult } from '../../models/billing.models';
 
 @Component({
   selector: 'app-payment-callback',
-  imports: [RouterLink],
+  imports: [],
   templateUrl: './payment-callback.html',
 })
 export class PaymentCallback implements OnInit {

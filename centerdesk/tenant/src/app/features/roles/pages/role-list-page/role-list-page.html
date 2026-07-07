@@ -1,0 +1,461 @@
+<div>
+
+  <!-- Table Card -->
+  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
+
+    <!-- Card Header -->
+    <div class="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Roles</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Manage roles and their permissions</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Search -->
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none">
+            <path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search roles…"
+            [value]="searchTerm"
+            (input)="searchTerm = $any($event.target).value; onSearch()"
+            class="h-9 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-transparent pl-9 pr-3 text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 w-52"
+          />
+        </div>
+        @if (canCreate()) {
+          <app-button size="sm" (btnClick)="openCreate()">
+            <svg class="mr-1.5 -ml-0.5 h-4 w-4 inline" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Add Role
+          </app-button>
+        }
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20 border-t border-gray-100 dark:border-white/[0.05]">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+      </div>
+
+    <!-- Empty -->
+    } @else if (filteredRoles().length === 0) {
+      <div class="border-t border-gray-100 dark:border-white/[0.05] flex flex-col items-center justify-center py-20 text-center px-6">
+        <div class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 dark:bg-white/[0.05] mb-4">
+          <svg class="h-7 w-7 text-gray-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.75L3.25 6.5V13C3.25 17.4183 7.19482 20.75 12 21.75C16.8052 20.75 20.75 17.4183 20.75 13V6.5L12 2.75ZM4.75 7.5L12 4.75L19.25 7.5V13C19.25 16.5817 16.0948 19.3438 12 20.2188C7.90518 19.3438 4.75 16.5817 4.75 13V7.5Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-medium text-gray-800 dark:text-white/90 mb-1">No roles found</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          {{ searchTerm ? 'Try adjusting your search.' : 'Get started by creating your first role.' }}
+        </p>
+        @if (canCreate() && !searchTerm) {
+          <app-button size="sm" (btnClick)="openCreate()">Add Role</app-button>
+        }
+      </div>
+
+    <!-- Table -->
+    } @else {
+      <div class="max-w-full overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-y border-gray-100 dark:border-white/[0.05]">
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400 sm:px-6">Role</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Permissions</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Users</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Created</th>
+              <th class="px-4 py-3 sm:px-6"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            @for (role of filteredRoles(); track role.uid) {
+              <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+
+                <!-- Role name + description -->
+                <td class="px-4 py-3.5 sm:px-6">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.75L3.25 6.5V13C3.25 17.4183 7.19482 20.75 12 21.75C16.8052 20.75 20.75 17.4183 20.75 13V6.5L12 2.75ZM4.75 7.5L12 4.75L19.25 7.5V13C19.25 16.5817 16.0948 19.3438 12 20.2188C7.90518 19.3438 4.75 16.5817 4.75 13V7.5ZM15.5303 9.96967C15.8232 10.2626 15.8232 10.7374 15.5303 11.0303L11.5303 15.0303C11.2374 15.3232 10.7626 15.3232 10.4697 15.0303L8.46967 13.0303C8.17678 12.7374 8.17678 12.2626 8.46967 11.9697C8.76256 11.6768 9.23744 11.6768 9.53033 11.9697L11 13.4393L14.4697 9.96967C14.7626 9.67678 15.2374 9.67678 15.5303 9.96967Z" fill="currentColor"/>
+                      </svg>
+                    </div>
+                    <div class="min-w-0">
+                      <span class="block font-medium text-theme-sm text-gray-800 dark:text-white/90 truncate">{{ role.name }}</span>
+                      @if (role.description) {
+                        <span class="block text-theme-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px]">{{ role.description }}</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Permissions -->
+                <td class="px-4 py-3.5">
+                  <button
+                    (click)="openPermissions(role)"
+                    class="flex flex-wrap gap-1 max-w-[260px] text-left hover:opacity-80 transition-opacity"
+                    title="Manage permissions"
+                  >
+                    @if (role.permissions.length === 0) {
+                      <span class="text-theme-xs text-gray-400 dark:text-gray-500 italic">None</span>
+                    } @else {
+                      @for (hex of role.permissions.slice(0, 3); track hex) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-theme-xs font-medium bg-gray-100 text-gray-600 dark:bg-white/[0.05] dark:text-gray-400 whitespace-nowrap">
+                          {{ permissionLabel(hex) }}
+                        </span>
+                      }
+                      @if (role.permissions.length > 3) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-theme-xs font-medium bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                          +{{ role.permissions.length - 3 }} more
+                        </span>
+                      }
+                    }
+                  </button>
+                </td>
+
+                <!-- User count -->
+                <td class="px-4 py-3.5">
+                  <button
+                    (click)="openUsers(role)"
+                    class="group inline-flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-white/[0.06] px-2.5 py-1 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
+                    title="View users in this role"
+                  >
+                    <svg class="h-3.5 w-3.5 flex-shrink-0 text-gray-400 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors" viewBox="0 0 24 24" fill="none">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M8.75 8C8.75 6.20508 10.2051 4.75 12 4.75C13.7949 4.75 15.25 6.20508 15.25 8C15.25 9.79492 13.7949 11.25 12 11.25C10.2051 11.25 8.75 9.79492 8.75 8ZM5.75 18.5C5.75 16.4289 7.42893 14.75 9.5 14.75H14.5C16.5711 14.75 18.25 16.4289 18.25 18.5V20C18.25 20.4142 18.5858 20.75 19 20.75C19.4142 20.75 19.75 20.4142 19.75 20V18.5C19.75 15.6005 17.3995 13.25 14.5 13.25H9.5C6.6005 13.25 4.25 15.6005 4.25 18.5V20C4.25 20.4142 4.58579 20.75 5 20.75C5.41421 20.75 5.75 20.4142 5.75 20V18.5Z" fill="currentColor"/>
+                    </svg>
+                    <span class="text-theme-xs font-medium text-gray-600 dark:text-gray-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors tabular-nums">
+                      {{ role.userCount }}
+                    </span>
+                  </button>
+                </td>
+
+                <!-- Created date -->
+                <td class="px-4 py-3.5 text-theme-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  {{ formatDate(role.createdAt) }}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-4 py-3.5 sm:px-6">
+                  <div class="flex items-center justify-end gap-2">
+                    @if (canUpdate()) {
+                      <button
+                        (click)="openEdit(role)"
+                        title="Edit role"
+                        class="shadow-theme-xs inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 transition-colors"
+                      >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </button>
+                    }
+                    @if (canDelete()) {
+                      <button
+                        (click)="openDelete(role)"
+                        title="Delete role"
+                        class="shadow-theme-xs inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-error-50 hover:text-error-600 hover:border-error-200 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400 transition-colors"
+                      >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer count -->
+      <div class="px-6 py-3.5 border-t border-gray-100 dark:border-white/[0.05]">
+        <p class="text-theme-xs text-gray-500 dark:text-gray-400">
+          {{ filteredRoles().length }} {{ filteredRoles().length === 1 ? 'role' : 'roles' }}
+          @if (searchTerm) { matching "{{ searchTerm }}" }
+        </p>
+      </div>
+    }
+  </div>
+
+</div>
+
+
+<!-- ─── Create Modal ─── -->
+@if (activeModal() === 'create') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Create Role</h2>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="px-6 py-5">
+        <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()">
+          <div class="flex flex-col gap-4">
+            <div>
+              <app-label>Name <span class="text-error-500">*</span></app-label>
+              <app-input-field formControlName="name" placeholder="e.g. Support Agent" />
+              @if (createForm.get('name')?.invalid && createForm.get('name')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Name is required.</p>
+              }
+            </div>
+            <div>
+              <app-label>Description</app-label>
+              <app-input-field formControlName="description" placeholder="What does this role do?" />
+            </div>
+          </div>
+          @if (modalError()) {
+            <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">
+              {{ modalError() }}
+            </div>
+          }
+        </form>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <app-button variant="outline" (btnClick)="closeModal()">Cancel</app-button>
+        <app-button [loading]="isSubmitting()" (btnClick)="onSubmitCreate()">Create Role</app-button>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ─── Edit Modal ─── -->
+@if (activeModal() === 'edit') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Edit Role</h2>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="px-6 py-5">
+        <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()">
+          <div class="flex flex-col gap-4">
+            <div>
+              <app-label>Name <span class="text-error-500">*</span></app-label>
+              <app-input-field formControlName="name" placeholder="e.g. Support Agent" />
+              @if (editForm.get('name')?.invalid && editForm.get('name')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Name is required.</p>
+              }
+            </div>
+            <div>
+              <app-label>Description</app-label>
+              <app-input-field formControlName="description" placeholder="What does this role do?" />
+            </div>
+          </div>
+          @if (modalError()) {
+            <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">
+              {{ modalError() }}
+            </div>
+          }
+        </form>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <app-button variant="outline" (btnClick)="closeModal()">Cancel</app-button>
+        <app-button [loading]="isSubmitting()" (btnClick)="onSubmitEdit()">Save Changes</app-button>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ─── Users Modal ─── -->
+@if (activeModal() === 'users') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Users — "{{ selectedRole()?.name }}"</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            @if (isLoadingDetail()) {
+              Loading…
+            } @else {
+              {{ roleDetail()?.users?.length ?? 0 }} {{ (roleDetail()?.users?.length ?? 0) === 1 ? 'member' : 'members' }}
+            }
+          </p>
+        </div>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto flex-1">
+
+        <!-- Loading -->
+        @if (isLoadingDetail()) {
+          <div class="flex items-center justify-center py-16">
+            <div class="h-7 w-7 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+          </div>
+
+        <!-- Empty -->
+        } @else if ((roleDetail()?.users ?? []).length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 text-center px-6">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-white/[0.05] mb-3">
+              <svg class="h-6 w-6 text-gray-400" viewBox="0 0 24 24" fill="none">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M8.75 8C8.75 6.20508 10.2051 4.75 12 4.75C13.7949 4.75 15.25 6.20508 15.25 8C15.25 9.79492 13.7949 11.25 12 11.25C10.2051 11.25 8.75 9.79492 8.75 8ZM5.75 18.5C5.75 16.4289 7.42893 14.75 9.5 14.75H14.5C16.5711 14.75 18.25 16.4289 18.25 18.5V20C18.25 20.4142 18.5858 20.75 19 20.75C19.4142 20.75 19.75 20.4142 19.75 20V18.5C19.75 15.6005 17.3995 13.25 14.5 13.25H9.5C6.6005 13.25 4.25 15.6005 4.25 18.5V20C4.25 20.4142 4.58579 20.75 5 20.75C5.41421 20.75 5.75 20.4142 5.75 20V18.5Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">No users assigned</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Assign this role to users from the Users page.</p>
+          </div>
+
+        <!-- User list -->
+        } @else {
+          <ul class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            @for (user of roleDetail()?.users; track user.uid) {
+              <li class="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <!-- Avatar -->
+                <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400 text-sm font-semibold">
+                  {{ userInitials(user.firstName, user.lastName) }}
+                </div>
+                <!-- Info -->
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                    {{ user.firstName }} {{ user.lastName }}
+                  </p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ user.email }}</p>
+                </div>
+                <!-- View link -->
+                @if (canViewUsers()) {
+                  <button
+                    (click)="viewUser(user.uid)"
+                    title="View user"
+                    class="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 dark:hover:text-brand-400 transition-colors"
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <app-button variant="outline" className="w-full" (btnClick)="closeModal()">Close</app-button>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ─── Permissions Modal ─── -->
+@if (activeModal() === 'permissions') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Permissions — "{{ selectedRole()?.name }}"</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            {{ selectedPermissions().size }} {{ selectedPermissions().size === 1 ? 'permission' : 'permissions' }} selected
+          </p>
+        </div>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 px-6 py-4">
+        @if (permissionGroups().length === 0) {
+          <div class="flex items-center justify-center py-12">
+            <div class="h-7 w-7 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+          </div>
+        } @else {
+          <div class="flex flex-col gap-6">
+            @for (group of permissionGroups(); track group.group) {
+              <div>
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  {{ group.group }}
+                </p>
+                <div class="flex flex-col divide-y divide-gray-100 dark:divide-white/[0.05] rounded-xl border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+                  @for (perm of group.permissions; track perm.name) {
+                    <label
+                      class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-white/[0.02] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+                      [class.cursor-pointer]="canManagePermissions()"
+                      [class.cursor-default]="!canManagePermissions()"
+                    >
+                      <input
+                        type="checkbox"
+                        [checked]="isPermissionSelected(permissionHex(perm))"
+                        (change)="togglePermission(permissionHex(perm))"
+                        [disabled]="!canManagePermissions()"
+                        class="h-4 w-4 flex-shrink-0 rounded border-gray-300 dark:border-gray-600 text-brand-600 focus:ring-brand-500 focus:ring-2 focus:ring-offset-0 disabled:opacity-50"
+                      />
+                      <span class="text-sm text-gray-700 dark:text-gray-300 select-none">
+                        {{ permissionLabel(permissionHex(perm)) }}
+                      </span>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <app-button variant="outline" (btnClick)="closeModal()">Close</app-button>
+        @if (canManagePermissions()) {
+          <app-button [loading]="isSavingPermissions()" (btnClick)="onSavePermissions()">Save Changes</app-button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ─── Delete Confirm Modal ─── -->
+@if (activeModal() === 'delete') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+
+      <div class="px-6 py-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 rounded-full bg-error-50 dark:bg-error-500/10 mx-auto mb-4">
+          <svg class="h-7 w-7 text-error-500" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-2">Delete "{{ selectedRole()?.name }}"?</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          This action cannot be undone. Roles assigned to users cannot be deleted — remove all assignments first.
+        </p>
+        @if (modalError()) {
+          <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400 text-left">
+            {{ modalError() }}
+          </div>
+        }
+      </div>
+
+      <div class="flex items-center gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <app-button variant="outline" className="flex-1" (btnClick)="closeModal()">Cancel</app-button>
+        <app-button
+          className="flex-1 !bg-error-500 hover:!bg-error-600 focus:!ring-error-500/20"
+          [loading]="!!deletingUid()"
+          (btnClick)="onConfirmDelete()"
+        >
+          Delete Role
+        </app-button>
+      </div>
+    </div>
+  </div>
+}

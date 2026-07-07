@@ -54,6 +54,7 @@ export class TicketListPage implements OnInit {
 
   protected readonly statusOptions = [
     { value: '', label: 'All Status' },
+    { value: String(TicketStatus.New), label: TICKET_STATUS_LABELS[TicketStatus.New] },
     { value: String(TicketStatus.Open), label: TICKET_STATUS_LABELS[TicketStatus.Open] },
     { value: String(TicketStatus.InProgress), label: TICKET_STATUS_LABELS[TicketStatus.InProgress] },
     { value: String(TicketStatus.PendingCustomer), label: TICKET_STATUS_LABELS[TicketStatus.PendingCustomer] },
@@ -186,6 +187,7 @@ export class TicketListPage implements OnInit {
 
   protected statusBadgeClass(status: TicketStatus): string {
     const map: Record<TicketStatus, string> = {
+      [TicketStatus.New]: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
       [TicketStatus.Open]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       [TicketStatus.InProgress]: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
       [TicketStatus.PendingCustomer]: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',

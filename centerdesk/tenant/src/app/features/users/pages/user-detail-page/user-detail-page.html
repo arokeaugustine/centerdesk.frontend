@@ -1,0 +1,388 @@
+@if (isLoading()) {
+  <div class="flex items-center justify-center py-32">
+    <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+  </div>
+} @else if (user(); as u) {
+  <div class="space-y-5">
+
+    <!-- Header card -->
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div class="px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+        <!-- Left: Avatar + identity -->
+        <div class="flex items-center gap-4">
+          <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400 text-2xl font-bold">
+            {{ initials(u) }}
+          </div>
+          <div>
+            <!-- Back -->
+            <button (click)="goBack()" class="flex items-center gap-1 text-theme-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mb-1 transition-colors">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Back to Users
+            </button>
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">{{ u.firstName }} {{ u.lastName }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ u.email }}</p>
+            <div class="flex items-center gap-2 mt-2 flex-wrap">
+              <span
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-theme-xs font-medium"
+                [ngClass]="u.isActive
+                  ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                  : 'bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400'"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" [ngClass]="u.isActive ? 'bg-success-500' : 'bg-gray-400'"></span>
+                {{ u.isActive ? 'Active' : 'Inactive' }}
+              </span>
+              @if (u.isAdmin) {
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-theme-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400">
+                  Admin
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          @if (canEdit()) {
+            <app-button variant="outline" size="sm" (btnClick)="openModal('edit')">
+              <svg class="h-4 w-4 mr-1.5 inline" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Edit Profile
+            </app-button>
+            <app-button variant="outline" size="sm" (btnClick)="openModal('password')">
+              <svg class="h-4 w-4 mr-1.5 inline" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Reset Password
+            </app-button>
+          }
+          @if (u.isActive && canDeactivate()) {
+            <app-button variant="outline" size="sm" (btnClick)="openModal('deactivate')"
+              className="border-error-300 text-error-600 hover:bg-error-50 dark:border-error-500/30 dark:text-error-400 dark:hover:bg-error-500/10">
+              Deactivate
+            </app-button>
+          }
+          @if (!u.isActive && canEdit()) {
+            <app-button size="sm" [loading]="isReactivating()" (btnClick)="onReactivate()">
+              Reactivate
+            </app-button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+
+      <!-- Info card -->
+      <div class="lg:col-span-1 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.05]">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Profile Info</h3>
+        </div>
+        <dl class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+          <div class="flex items-start px-5 py-3.5 gap-3">
+            <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Phone</dt>
+            <dd class="text-theme-sm text-gray-700 dark:text-gray-300">{{ u.phoneNumber || '—' }}</dd>
+          </div>
+          <div class="flex items-start px-5 py-3.5 gap-3">
+            <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Unit</dt>
+            <dd class="text-theme-sm text-gray-700 dark:text-gray-300">{{ u.unit || '—' }}</dd>
+          </div>
+          <div class="flex items-start px-5 py-3.5 gap-3">
+            <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Group</dt>
+            <dd class="text-theme-sm text-gray-700 dark:text-gray-300">{{ u.group || '—' }}</dd>
+          </div>
+          <div class="flex items-start px-5 py-3.5 gap-3">
+            <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Division</dt>
+            <dd class="text-theme-sm text-gray-700 dark:text-gray-300">{{ u.division || '—' }}</dd>
+          </div>
+          <div class="flex items-start px-5 py-3.5 gap-3">
+            <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Joined</dt>
+            <dd class="text-theme-sm text-gray-700 dark:text-gray-300">{{ formatDate(u.createdAt) }}</dd>
+          </div>
+          @if (!u.isActive && u.deactivatedAt) {
+            <div class="flex items-start px-5 py-3.5 gap-3">
+              <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Deactivated</dt>
+              <dd class="text-theme-sm text-error-600 dark:text-error-400">{{ formatDate(u.deactivatedAt) }}</dd>
+            </div>
+            @if (u.deactivationRemark) {
+              <div class="flex items-start px-5 py-3.5 gap-3">
+                <dt class="w-24 flex-shrink-0 text-theme-xs text-gray-400 dark:text-gray-500 pt-0.5">Reason</dt>
+                <dd class="text-theme-sm text-gray-700 dark:text-gray-300 italic">{{ u.deactivationRemark }}</dd>
+              </div>
+            }
+          }
+        </dl>
+      </div>
+
+      <!-- Roles + Permissions -->
+      <div class="lg:col-span-2 space-y-5">
+
+        <!-- Roles card -->
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.05]">
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Assigned Roles</h3>
+          </div>
+          <div class="p-5">
+            @if (u.roles.length > 0) {
+              <div class="flex flex-wrap gap-2 mb-4">
+                @for (role of u.roles; track role.uid) {
+                  <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] pl-3 pr-1.5 py-1 text-sm text-gray-700 dark:text-gray-300">
+                    {{ role.name }}
+                    @if (canManagePermissions()) {
+                      <button
+                        (click)="onRemoveRole(role.uid)"
+                        [disabled]="removingRoleUid() === role.uid"
+                        class="h-5 w-5 flex items-center justify-center rounded-full hover:bg-error-100 hover:text-error-600 dark:hover:bg-error-500/15 dark:hover:text-error-400 text-gray-400 transition-colors disabled:opacity-40"
+                      >
+                        @if (removingRoleUid() === role.uid) {
+                          <svg class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        } @else {
+                          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        }
+                      </button>
+                    }
+                  </span>
+                }
+              </div>
+            } @else {
+              <p class="text-sm text-gray-400 dark:text-gray-500 mb-4">No roles assigned.</p>
+            }
+
+            @if (canManagePermissions()) {
+              <form [formGroup]="assignRoleForm" (ngSubmit)="onAssignRole()" class="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-white/[0.05]">
+                <div class="relative flex-1">
+                  <select
+                    formControlName="roleUid"
+                    class="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 py-2 pl-3 pr-9 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400 dark:focus:border-brand-500 disabled:opacity-50"
+                  >
+                    <option value="" disabled>Select a role…</option>
+                    @for (role of assignableRoles(); track role.uid) {
+                      <option [value]="role.uid">{{ role.name }}</option>
+                    }
+                  </select>
+                  <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+                    </svg>
+                  </span>
+                </div>
+                @if (assignRoleForm.get('roleUid')?.invalid && assignRoleForm.get('roleUid')?.touched) {
+                  <p class="mt-1 text-xs text-error-500">Please select a role</p>
+                }
+                <app-button
+                  size="sm"
+                  [loading]="assigningRole()"
+                  [disabled]="!assignRoleForm.get('roleUid')?.value || assignableRoles().length === 0"
+                  (btnClick)="onAssignRole()"
+                >Assign</app-button>
+              </form>
+            }
+          </div>
+        </div>
+
+        <!-- Direct Permissions card -->
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.05]">
+            <div>
+              <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Direct Permissions</h3>
+              <p class="text-theme-xs text-gray-400 dark:text-gray-500 mt-0.5">Permissions granted directly to this user (outside roles)</p>
+            </div>
+            @if (canManagePermissions()) {
+              <app-button variant="outline" size="sm" (btnClick)="openModal('permissions')">Manage</app-button>
+            }
+          </div>
+          <div class="p-5">
+            @if (u.directPermissions.length > 0) {
+              <div class="flex flex-wrap gap-2">
+                @for (hex of u.directPermissions; track hex) {
+                  <span class="inline-flex items-center rounded-full border border-brand-200 dark:border-brand-500/20 bg-brand-50 dark:bg-brand-500/10 px-2.5 py-0.5 text-theme-xs font-medium text-brand-700 dark:text-brand-400">
+                    {{ permissionLabel(hex) }}
+                  </span>
+                }
+              </div>
+            } @else {
+              <p class="text-sm text-gray-400 dark:text-gray-500">No direct permissions assigned.</p>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit Modal -->
+@if (activeModal() === 'edit') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Edit Profile</h2>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-6 py-5">
+        <form [formGroup]="editForm" class="grid grid-cols-2 gap-4">
+          <div>
+            <app-label>First Name <span class="text-error-500">*</span></app-label>
+            <app-input-field formControlName="firstName" />
+          </div>
+          <div>
+            <app-label>Last Name <span class="text-error-500">*</span></app-label>
+            <app-input-field formControlName="lastName" />
+          </div>
+          <div class="col-span-2">
+            <app-label>Phone Number</app-label>
+            <app-input-field formControlName="phoneNumber" />
+          </div>
+          <div>
+            <app-label>Unit</app-label>
+            <app-input-field formControlName="unit" />
+          </div>
+          <div>
+            <app-label>Group</app-label>
+            <app-input-field formControlName="group" />
+          </div>
+          <div class="col-span-2">
+            <app-label>Division</app-label>
+            <app-input-field formControlName="division" />
+          </div>
+          <div class="col-span-2 flex items-center gap-3">
+            <input type="checkbox" formControlName="isAdmin" id="editIsAdmin"
+              class="h-4 w-4 rounded border-gray-300 accent-brand-500 dark:border-gray-700 cursor-pointer" />
+            <label for="editIsAdmin" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">Admin privileges</label>
+          </div>
+        </form>
+        @if (modalError()) {
+          <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+        }
+      </div>
+      <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <app-button variant="outline" (btnClick)="closeModal()">Cancel</app-button>
+        <app-button [loading]="isSubmitting()" (btnClick)="onSaveEdit()">Save Changes</app-button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Reset Password Modal -->
+@if (activeModal() === 'password') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Reset Password</h2>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="px-6 py-5">
+        <form [formGroup]="passwordForm" class="space-y-4">
+          <div>
+            <app-label>New Password <span class="text-error-500">*</span></app-label>
+            <app-input-field type="password" formControlName="newPassword" placeholder="Min. 6 characters" />
+            @if (passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched) {
+              <p class="mt-1 text-xs text-error-500">At least 6 characters required</p>
+            }
+          </div>
+          <div>
+            <app-label>Confirm Password <span class="text-error-500">*</span></app-label>
+            <app-input-field type="password" formControlName="confirmPassword" placeholder="Re-enter password" />
+            @if (passwordForm.errors?.['mismatch'] && passwordForm.get('confirmPassword')?.touched) {
+              <p class="mt-1 text-xs text-error-500">Passwords do not match</p>
+            }
+          </div>
+        </form>
+        @if (modalError()) {
+          <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+        }
+      </div>
+      <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <app-button variant="outline" (btnClick)="closeModal()">Cancel</app-button>
+        <app-button [loading]="isSubmitting()" (btnClick)="onResetPassword()">Reset Password</app-button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Deactivate Modal -->
+@if (activeModal() === 'deactivate') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-error-50 dark:bg-error-500/10 mx-auto mb-4">
+          <svg class="h-6 w-6 text-error-500" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2">Deactivate User</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          This will revoke {{ user()?.firstName }}'s access. You can reactivate them later.
+        </p>
+        <form [formGroup]="deactivateForm">
+          <app-label>Reason (optional)</app-label>
+          <app-input-field formControlName="remark" placeholder="e.g. On leave, Role change…" />
+        </form>
+        @if (modalError()) {
+          <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+        }
+      </div>
+      <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <app-button variant="outline" (btnClick)="closeModal()">Cancel</app-button>
+        <app-button
+          className="bg-error-500 hover:bg-error-600 focus:ring-error-500/20 dark:bg-error-500 dark:hover:bg-error-600"
+          [loading]="isSubmitting()"
+          (btnClick)="onDeactivate()"
+        >Deactivate</app-button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Permissions Modal -->
+@if (activeModal() === 'permissions') {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Manage Direct Permissions</h2>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Permissions from roles are shown in the Roles section above</p>
+        </div>
+        <button (click)="closeModal()" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+        @for (group of permissionGroups; track group.label) {
+          <div>
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ group.label }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              @for (p of group.permissions; track p) {
+                @if (permissionLabels[p]) {
+                  <label class="flex items-center gap-3 cursor-pointer rounded-lg border border-gray-200 dark:border-white/[0.06] px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+                    [class.border-brand-300]="isPermissionSelected(p)"
+                    [class.dark:border-brand-500]="isPermissionSelected(p)"
+                    [class.bg-brand-50]="isPermissionSelected(p)"
+                    [class.dark:bg-brand-500/10]="isPermissionSelected(p)"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="isPermissionSelected(p)"
+                      (change)="togglePermission(p)"
+                      class="h-4 w-4 rounded border-gray-300 accent-brand-500 dark:border-gray-600 cursor-pointer flex-shrink-0"
+                    />
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ permissionLabels[p] }}</span>
+                  </label>
+                }
+              }
+            </div>
+          </div>
+        }
+        @if (modalError()) {
+          <div class="rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+        }
+      </div>
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <p class="text-xs text-gray-400 dark:text-gray-500">{{ selectedPermissions().size }} permission(s) selected</p>
+        <div class="flex gap-3">
+          <app-button variant="outline" (btnClick)="closeModal()">Cancel</app-button>
+          <app-button [loading]="savingPermissions()" (btnClick)="onSavePermissions()">Save Permissions</app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

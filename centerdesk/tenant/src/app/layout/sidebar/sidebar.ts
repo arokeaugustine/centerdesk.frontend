@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { TenantPermission } from '../../core/auth/auth.models';
@@ -6,12 +6,20 @@ import { PermissionService } from '../../core/auth/permission.service';
 import { SidebarService } from '../../core/sidebar/sidebar.service';
 import { SafeHtmlPipe } from '../../shared/pipes/safe-html.pipe';
 
-type NavItem = {
+type NavLeaf = {
   name: string;
   icon: string;
   path: string;
   requiredPermission?: TenantPermission;
 };
+
+type NavGroup = {
+  name: string;
+  icon: string;
+  children: NavLeaf[];
+};
+
+type NavEntry = NavLeaf | NavGroup;
 
 @Component({
   selector: 'app-sidebar',
@@ -24,6 +32,8 @@ export class Sidebar {
   protected readonly router = inject(Router);
   private readonly permissions = inject(PermissionService);
 
+  private readonly expandedGroup = signal<string | null>(null);
+
   protected isVisible(): boolean {
     return this.sidebar.isExpanded() || this.sidebar.isHovered() || this.sidebar.isMobileOpen();
   }
@@ -32,13 +42,29 @@ export class Sidebar {
     return this.router.url.startsWith(path);
   }
 
+  protected isGroup(entry: NavEntry): entry is NavGroup {
+    return 'children' in entry;
+  }
+
+  protected isGroupActive(group: NavGroup): boolean {
+    return group.children.some(c => this.isActive(c.path));
+  }
+
+  protected isGroupOpen(group: NavGroup): boolean {
+    return this.expandedGroup() === group.name || this.isGroupActive(group);
+  }
+
+  protected toggleGroup(name: string): void {
+    this.expandedGroup.update(current => (current === name ? null : name));
+  }
+
   protected onMouseEnter(): void {
     if (!this.sidebar.isExpanded()) {
       this.sidebar.setHovered(true);
     }
   }
 
-  private readonly allNavItems: NavItem[] = [
+  private readonly allEntries: NavEntry[] = [
     {
       name: 'Dashboard',
       path: '/dashboard',
@@ -49,6 +75,24 @@ export class Sidebar {
       path: '/tickets',
       requiredPermission: TenantPermission.CanViewAllTickets,
       icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.25 3.75A.75.75 0 0 1 9 3h6a.75.75 0 0 1 .75.75v1.5A.75.75 0 0 1 15 6H9a.75.75 0 0 1-.75-.75v-1.5ZM6.75 4.5H5.5A2.25 2.25 0 0 0 3.25 6.75v13A2.25 2.25 0 0 0 5.5 22h13a2.25 2.25 0 0 0 2.25-2.25v-13A2.25 2.25 0 0 0 18.5 4.5h-1.25v.75A2.25 2.25 0 0 1 15 7.5H9A2.25 2.25 0 0 1 6.75 5.25V4.5ZM7.5 10.5a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75Zm.75 3.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.75Z" fill="currentColor"/></svg>`,
+    },
+    {
+      name: 'User Management',
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M9 4.75C7.48122 4.75 6.25 5.98122 6.25 7.5C6.25 9.01878 7.48122 10.25 9 10.25C10.5188 10.25 11.75 9.01878 11.75 7.5C11.75 5.98122 10.5188 4.75 9 4.75ZM4.75 7.5C4.75 5.15279 6.65279 3.25 9 3.25C11.3472 3.25 13.25 5.15279 13.25 7.5C13.25 9.84721 11.3472 11.75 9 11.75C6.65279 11.75 4.75 9.84721 4.75 7.5ZM14.5 5.25C14.0858 5.25 13.75 5.58579 13.75 6C13.75 6.41421 14.0858 6.75 14.5 6.75C15.4665 6.75 16.25 7.53353 16.25 8.5C16.25 9.46647 15.4665 10.25 14.5 10.25C14.0858 10.25 13.75 10.5858 13.75 11C13.75 11.4142 14.0858 11.75 14.5 11.75C16.2949 11.75 17.75 10.2949 17.75 8.5C17.75 6.70507 16.2949 5.25 14.5 5.25ZM3.25 17C3.25 14.6528 5.15279 12.75 7.5 12.75H10.5C12.8472 12.75 14.75 14.6528 14.75 17V18C14.75 18.4142 14.4142 18.75 14 18.75C13.5858 18.75 13.25 18.4142 13.25 18V17C13.25 15.4812 12.0188 14.25 10.5 14.25H7.5C5.98122 14.25 4.75 15.4812 4.75 17V18C4.75 18.4142 4.41421 18.75 4 18.75C3.58579 18.75 3.25 18.4142 3.25 18V17ZM16 13.25C15.5858 13.25 15.25 13.5858 15.25 14C15.25 14.4142 15.5858 14.75 16 14.75C17.5188 14.75 18.75 15.9812 18.75 17.5V18C18.75 18.4142 19.0858 18.75 19.5 18.75C19.9142 18.75 20.25 18.4142 20.25 18V17.5C20.25 15.1528 18.3472 13.25 16 13.25Z" fill="currentColor"/></svg>`,
+      children: [
+        {
+          name: 'Users',
+          path: '/users',
+          requiredPermission: TenantPermission.CanViewUsers,
+          icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.75 8C8.75 6.20508 10.2051 4.75 12 4.75C13.7949 4.75 15.25 6.20508 15.25 8C15.25 9.79492 13.7949 11.25 12 11.25C10.2051 11.25 8.75 9.79492 8.75 8ZM12 3.25C9.37665 3.25 7.25 5.37665 7.25 8C7.25 10.6234 9.37665 12.75 12 12.75C14.6234 12.75 16.75 10.6234 16.75 8C16.75 5.37665 14.6234 3.25 12 3.25ZM5.75 18.5C5.75 16.4289 7.42893 14.75 9.5 14.75H14.5C16.5711 14.75 18.25 16.4289 18.25 18.5V20C18.25 20.4142 18.5858 20.75 19 20.75C19.4142 20.75 19.75 20.4142 19.75 20V18.5C19.75 15.6005 17.3995 13.25 14.5 13.25H9.5C6.6005 13.25 4.25 15.6005 4.25 18.5V20C4.25 20.4142 4.58579 20.75 5 20.75C5.41421 20.75 5.75 20.4142 5.75 20V18.5Z" fill="currentColor"/></svg>`,
+        },
+        {
+          name: 'Roles',
+          path: '/roles',
+          requiredPermission: TenantPermission.CanViewRoles,
+          icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.75L3.25 6.5V13C3.25 17.4183 7.19482 20.75 12 21.75C16.8052 20.75 20.75 17.4183 20.75 13V6.5L12 2.75ZM4.75 7.5L12 4.75L19.25 7.5V13C19.25 16.5817 16.0948 19.3438 12 20.2188C7.90518 19.3438 4.75 16.5817 4.75 13V7.5ZM15.5303 9.96967C15.8232 10.2626 15.8232 10.7374 15.5303 11.0303L11.5303 15.0303C11.2374 15.3232 10.7626 15.3232 10.4697 15.0303L8.46967 13.0303C8.17678 12.7374 8.17678 12.2626 8.46967 11.9697C8.76256 11.6768 9.23744 11.6768 9.53033 11.9697L11 13.4393L14.4697 9.96967C14.7626 9.67678 15.2374 9.67678 15.5303 9.96967Z" fill="currentColor"/></svg>`,
+        },
+      ],
     },
     {
       name: 'Account',
@@ -73,9 +117,22 @@ export class Sidebar {
     },
   ];
 
-  protected readonly navItems = computed(() =>
-    this.allNavItems.filter(
-      item => !item.requiredPermission || this.permissions.has(item.requiredPermission)
-    )
+  protected readonly entries = computed((): NavEntry[] =>
+    this.allEntries
+      .filter(entry => {
+        if (this.isGroup(entry)) {
+          return entry.children.some(c => !c.requiredPermission || this.permissions.has(c.requiredPermission));
+        }
+        return !entry.requiredPermission || this.permissions.has(entry.requiredPermission);
+      })
+      .map(entry => {
+        if (this.isGroup(entry)) {
+          return {
+            ...entry,
+            children: entry.children.filter(c => !c.requiredPermission || this.permissions.has(c.requiredPermission)),
+          };
+        }
+        return entry;
+      })
   );
 }

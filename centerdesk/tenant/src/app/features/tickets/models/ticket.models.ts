@@ -1,10 +1,11 @@
 export enum TicketStatus {
-  Open = 0,
-  InProgress = 1,
-  PendingCustomer = 2,
-  Resolved = 3,
-  Closed = 4,
-  Reopened = 5,
+  New = 0,
+  Open = 1,
+  InProgress = 2,
+  PendingCustomer = 3,
+  Resolved = 4,
+  Closed = 5,
+  Reopened = 6,
 }
 
 export enum TicketPriority {
@@ -160,6 +161,7 @@ export interface TicketSearchQuery {
 }
 
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
+  [TicketStatus.New]: 'New',
   [TicketStatus.Open]: 'Open',
   [TicketStatus.InProgress]: 'In Progress',
   [TicketStatus.PendingCustomer]: 'Pending Customer',

@@ -6,7 +6,7 @@ import { ToastService, ToastType } from '../../services/toast.service';
   selector: 'app-toast',
   imports: [NgClass],
   template: `
-    <div class="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2.5 pointer-events-none">
+    <div class="fixed top-5 left-1/2 -translate-x-1/2 z-[200000] flex flex-col items-center gap-2.5 pointer-events-none">
       @for (item of toast.items(); track item.id) {
         <div
           class="pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg w-[360px] bg-white dark:bg-gray-900 animate-slide-in"
@@ -60,8 +60,8 @@ import { ToastService, ToastType } from '../../services/toast.service';
   `,
   styles: [`
     @keyframes slide-in {
-      from { opacity: 0; transform: translateX(100%); }
-      to   { opacity: 1; transform: translateX(0); }
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .animate-slide-in { animation: slide-in 0.2s ease-out; }
   `],

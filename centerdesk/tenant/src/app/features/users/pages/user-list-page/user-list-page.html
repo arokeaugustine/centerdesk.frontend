@@ -1,0 +1,334 @@
+<div>
+
+  <!-- Table Card -->
+  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
+
+    <!-- Card Header -->
+    <div class="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Users</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Manage team members and their access</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Active filter -->
+        <div class="flex items-center rounded-lg border border-gray-200 dark:border-white/[0.08] overflow-hidden text-sm">
+          @for (opt of [['all','All'],['active','Active'],['inactive','Inactive']]; track opt[0]) {
+            <button
+              (click)="onFilterChange($any(opt[0]))"
+              [class]="filterActive === opt[0]
+                ? 'px-3 py-1.5 bg-brand-500 text-white font-medium'
+                : 'px-3 py-1.5 text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/[0.05]'"
+            >{{ opt[1] }}</button>
+          }
+        </div>
+        <!-- Search -->
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none">
+            <path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search users…"
+            [value]="searchTerm"
+            (input)="searchTerm = $any($event.target).value"
+            (keyup.enter)="onSearch()"
+            class="h-9 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-transparent pl-9 pr-3 text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 w-52"
+          />
+        </div>
+        @if (canAdd()) {
+          <app-button size="sm" (btnClick)="openCreate()">
+            <svg class="mr-1.5 -ml-0.5 h-4 w-4 inline" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Add User
+          </app-button>
+        }
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20 border-t border-gray-100 dark:border-white/[0.05]">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+      </div>
+
+    <!-- Empty -->
+    } @else if (users().length === 0) {
+      <div class="border-t border-gray-100 dark:border-white/[0.05] flex flex-col items-center justify-center py-20 text-center px-6">
+        <div class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 dark:bg-white/[0.05] mb-4">
+          <svg class="h-7 w-7 text-gray-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-medium text-gray-800 dark:text-white/90 mb-1">No users found</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Try adjusting your search or filters.</p>
+        @if (canAdd()) {
+          <app-button size="sm" (btnClick)="openCreate()">Add User</app-button>
+        }
+      </div>
+
+    <!-- Table -->
+    } @else {
+      <div class="max-w-full overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-y border-gray-100 dark:border-white/[0.05]">
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400 sm:px-6">Name</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Email</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Department</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Roles</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Status</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Joined</th>
+              <th class="px-4 py-3 sm:px-6"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            @for (user of users(); track user.uid) {
+              <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+
+                <!-- Name + Avatar -->
+                <td class="px-4 py-3.5 sm:px-6">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400 text-sm font-semibold">
+                      {{ initials(user) }}
+                    </div>
+                    <div class="min-w-0">
+                      <span class="block font-medium text-theme-sm text-gray-800 dark:text-white/90 truncate">
+                        {{ user.firstName }} {{ user.lastName }}
+                      </span>
+                      @if (user.isAdmin) {
+                        <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-theme-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400 mt-0.5">Admin</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Email -->
+                <td class="px-4 py-3.5 text-theme-sm text-gray-600 dark:text-gray-400">{{ user.email }}</td>
+
+                <!-- Department -->
+                <td class="px-4 py-3.5">
+                  @if (user.division || user.group || user.unit) {
+                    <span class="block text-theme-sm text-gray-700 dark:text-gray-300">{{ user.division || user.group || user.unit }}</span>
+                    @if (user.unit && (user.division || user.group)) {
+                      <span class="block text-theme-xs text-gray-400 dark:text-gray-500">{{ user.unit }}</span>
+                    }
+                  } @else {
+                    <span class="text-theme-xs text-gray-400 dark:text-gray-500">—</span>
+                  }
+                </td>
+
+                <!-- Roles -->
+                <td class="px-4 py-3.5">
+                  @if (user.roles.length > 0) {
+                    <div class="flex flex-wrap gap-1">
+                      @for (role of user.roles.slice(0, 2); track role.uid) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-theme-xs font-medium bg-gray-100 text-gray-600 dark:bg-white/[0.05] dark:text-gray-400">
+                          {{ role.name }}
+                        </span>
+                      }
+                      @if (user.roles.length > 2) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-theme-xs font-medium bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-500">
+                          +{{ user.roles.length - 2 }}
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="text-theme-xs text-gray-400 dark:text-gray-500">No roles</span>
+                  }
+                </td>
+
+                <!-- Status -->
+                <td class="px-4 py-3.5">
+                  <span
+                    class="inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-theme-xs font-medium"
+                    [ngClass]="user.isActive
+                      ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                      : 'bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400'"
+                  >
+                    <span class="h-1.5 w-1.5 rounded-full" [ngClass]="user.isActive ? 'bg-success-500' : 'bg-gray-400'"></span>
+                    {{ user.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+
+                <!-- Joined -->
+                <td class="px-4 py-3.5 text-theme-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  {{ formatDate(user.createdAt) }}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-4 py-3.5 sm:px-6">
+                  <div class="flex items-center justify-end gap-2">
+                    <!-- Deactivate / Reactivate -->
+                    @if (user.isActive && canDeactivate()) {
+                      <button
+                        (click)="deactivateUser(user)"
+                        [disabled]="deactivatingUid() === user.uid"
+                        title="Deactivate"
+                        class="shadow-theme-xs inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-error-50 hover:text-error-600 hover:border-error-200 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        @if (deactivatingUid() === user.uid) {
+                          <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        } @else {
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        }
+                      </button>
+                    }
+                    @if (!user.isActive && canEdit()) {
+                      <button
+                        (click)="reactivateUser(user)"
+                        [disabled]="reactivatingUid() === user.uid"
+                        title="Reactivate"
+                        class="shadow-theme-xs inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-success-50 hover:text-success-600 hover:border-success-200 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-success-500/10 dark:hover:text-success-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        @if (reactivatingUid() === user.uid) {
+                          <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        } @else {
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0 1 14.65-2.65L20 9M4 15l1.35 2.65A9 9 0 0 0 20 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        }
+                      </button>
+                    }
+                    <!-- View -->
+                    @if (canView()) {
+                      <button
+                        (click)="viewUser(user.uid)"
+                        title="View details"
+                        class="shadow-theme-xs inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 transition-colors"
+                      >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-6 py-3.5 border-t border-gray-100 dark:border-white/[0.05]">
+        <p class="text-theme-xs text-gray-500 dark:text-gray-400">
+          Page {{ currentPage() }} &middot; {{ totalItems() }} total
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            (click)="prevPage()"
+            [disabled]="!hasPreviousPage()"
+            class="shadow-theme-xs inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-theme-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Previous
+          </button>
+          <button
+            (click)="nextPage()"
+            [disabled]="!hasNextPage()"
+            class="shadow-theme-xs inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-theme-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>
+
+<!-- Create Modal -->
+@if (showCreateModal()) {
+  <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Add User</h2>
+        <button (click)="closeCreate()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 px-6 py-5">
+        <form [formGroup]="createForm" (ngSubmit)="onSubmit()">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <app-label>First Name <span class="text-error-500">*</span></app-label>
+              <app-input-field formControlName="firstName" placeholder="John" />
+              @if (createForm.get('firstName')?.invalid && createForm.get('firstName')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Required</p>
+              }
+            </div>
+            <div>
+              <app-label>Last Name <span class="text-error-500">*</span></app-label>
+              <app-input-field formControlName="lastName" placeholder="Smith" />
+              @if (createForm.get('lastName')?.invalid && createForm.get('lastName')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Required</p>
+              }
+            </div>
+            <div>
+              <app-label>Email Address <span class="text-error-500">*</span></app-label>
+              <app-input-field type="email" formControlName="email" placeholder="john@company.com" />
+              @if (createForm.get('email')?.invalid && createForm.get('email')?.touched) {
+                <p class="mt-1 text-xs text-error-500">Valid email required</p>
+              }
+            </div>
+            <div>
+              <app-label>Phone Number</app-label>
+              <app-input-field formControlName="phoneNumber" placeholder="+1 555 0100" />
+            </div>
+            <div>
+              <app-label>Unit</app-label>
+              <app-input-field formControlName="unit" placeholder="Engineering" />
+            </div>
+            <div>
+              <app-label>Group</app-label>
+              <app-input-field formControlName="group" placeholder="Backend" />
+            </div>
+            <div>
+              <app-label>Division</app-label>
+              <app-input-field formControlName="division" placeholder="Technology" />
+            </div>
+            <div class="sm:col-span-2">
+              <app-label>Role</app-label>
+              <div class="relative">
+                <select
+                  formControlName="roleUid"
+                  class="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-10 text-sm text-gray-800 shadow-sm focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                >
+                  <option value="">No role assigned</option>
+                  @for (role of availableRoles(); track role.uid) {
+                    <option [value]="role.uid">{{ role.name }}</option>
+                  }
+                </select>
+                <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 mt-4">
+            <input type="checkbox" formControlName="isAdmin" id="isAdmin"
+              class="h-4 w-4 rounded border-gray-300 accent-brand-500 dark:border-gray-700 cursor-pointer" />
+            <label for="isAdmin" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+              Grant admin privileges
+            </label>
+          </div>
+          @if (formError()) {
+            <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">
+              {{ formError() }}
+            </div>
+          }
+        </form>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <app-button variant="outline" (btnClick)="closeCreate()">Cancel</app-button>
+        <app-button [loading]="isSubmitting()" (btnClick)="onSubmit()">Create User</app-button>
+      </div>
+    </div>
+  </div>
+}

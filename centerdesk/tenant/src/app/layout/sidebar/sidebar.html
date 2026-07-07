@@ -48,31 +48,97 @@
             }
           </h2>
           <ul class="flex flex-col gap-1">
-            @for (item of navItems(); track item.path) {
-              <li>
-                <a
-                  [routerLink]="item.path"
-                  class="menu-item group"
-                  [ngClass]="{
-                    'menu-item-active': isActive(item.path),
-                    'menu-item-inactive': !isActive(item.path),
-                    'xl:justify-center': !isVisible(),
-                    'xl:justify-start': isVisible()
-                  }"
-                >
-                  <span
-                    class="menu-item-icon-size"
+            @for (entry of entries(); track entry.name) {
+              @if (isGroup(entry)) {
+                <!-- Group item -->
+                <li>
+                  <button
+                    type="button"
+                    class="menu-item w-full cursor-pointer"
                     [ngClass]="{
-                      'menu-item-icon-active': isActive(item.path),
-                      'menu-item-icon-inactive': !isActive(item.path)
+                      'menu-item-active': isGroupActive(entry),
+                      'menu-item-inactive': !isGroupActive(entry),
+                      'xl:justify-center': !isVisible(),
+                      'xl:justify-start': isVisible()
                     }"
-                    [innerHTML]="item.icon | safeHtml"
-                  ></span>
-                  @if (isVisible()) {
-                    <span class="menu-item-text">{{ item.name }}</span>
+                    (click)="toggleGroup(entry.name)"
+                  >
+                    <span
+                      class="menu-item-icon-size"
+                      [ngClass]="{
+                        'menu-item-icon-active': isGroupActive(entry),
+                        'menu-item-icon-inactive': !isGroupActive(entry)
+                      }"
+                      [innerHTML]="entry.icon | safeHtml"
+                    ></span>
+                    @if (isVisible()) {
+                      <span class="menu-item-text flex-1 text-left">{{ entry.name }}</span>
+                      <svg
+                        class="flex-shrink-0 transition-transform duration-200"
+                        [ngClass]="{ 'rotate-180': isGroupOpen(entry) }"
+                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    }
+                  </button>
+
+                  <!-- Children -->
+                  @if (isGroupOpen(entry) && isVisible()) {
+                    <ul class="mt-1 ml-8 flex flex-col gap-1">
+                      @for (child of entry.children; track child.path) {
+                        <li>
+                          <a
+                            [routerLink]="child.path"
+                            class="menu-item"
+                            [ngClass]="{
+                              'menu-item-active': isActive(child.path),
+                              'menu-item-inactive': !isActive(child.path)
+                            }"
+                          >
+                            <span
+                              class="menu-item-icon-size"
+                              [ngClass]="{
+                                'menu-item-icon-active': isActive(child.path),
+                                'menu-item-icon-inactive': !isActive(child.path)
+                              }"
+                              [innerHTML]="child.icon | safeHtml"
+                            ></span>
+                            <span class="menu-item-text">{{ child.name }}</span>
+                          </a>
+                        </li>
+                      }
+                    </ul>
                   }
-                </a>
-              </li>
+                </li>
+              } @else {
+                <!-- Leaf item -->
+                <li>
+                  <a
+                    [routerLink]="entry.path"
+                    class="menu-item group"
+                    [ngClass]="{
+                      'menu-item-active': isActive(entry.path),
+                      'menu-item-inactive': !isActive(entry.path),
+                      'xl:justify-center': !isVisible(),
+                      'xl:justify-start': isVisible()
+                    }"
+                  >
+                    <span
+                      class="menu-item-icon-size"
+                      [ngClass]="{
+                        'menu-item-icon-active': isActive(entry.path),
+                        'menu-item-icon-inactive': !isActive(entry.path)
+                      }"
+                      [innerHTML]="entry.icon | safeHtml"
+                    ></span>
+                    @if (isVisible()) {
+                      <span class="menu-item-text">{{ entry.name }}</span>
+                    }
+                  </a>
+                </li>
+              }
             }
           </ul>
         </div>

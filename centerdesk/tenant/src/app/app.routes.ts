@@ -51,6 +51,16 @@ export const routes: Routes = [
           import('./features/tickets/tickets.routes').then(m => m.ticketsRoutes),
       },
       {
+        path: 'users',
+        loadChildren: () =>
+          import('./features/users/users.routes').then(m => m.usersRoutes),
+      },
+      {
+        path: 'roles',
+        loadChildren: () =>
+          import('./features/roles/roles.routes').then(m => m.rolesRoutes),
+      },
+      {
         path: 'email-desks',
         loadChildren: () =>
           import('./features/email-desks/email-desks.routes').then(m => m.emailDesksRoutes),

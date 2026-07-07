@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The Angular application lives under `centerdesk/tenant/`. All commands below must be run from that directory.
 
+The .NET API lives at `C:\Users\AugustineAroke\source\repos\DeskApp\CentralDesk.API` (separate repo/solution). Controllers are under `CenterDesk.API\Controllers\`, services under `CenterDesk.Infrastructure\Services\`.
+
+The UI design reference template lives at `C:\Users\AugustineAroke\source\repos\DeskApp\angular template`. Use it for design patterns, component structure, modal layouts, table styles, and Tailwind class conventions when building new pages.
+
 ## Commands
 
 ```bash
@@ -96,6 +100,47 @@ All API responses follow this shape:
 `environment.ts` (production) sets `apiBaseUrl: 'https://api.centerdesk.io'`.  
 `environment.development.ts` sets `apiBaseUrl: 'https://localhost:7213'`.  
 The URL is provided as the `API_BASE_URL` injection token at app startup.
+
+### Roles API (`api/roles`)
+
+All endpoints require `Authorization` + `X-Tenant-Slug` headers (injected by interceptors).
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| `GET` | `/api/roles` | `CanViewRoles` | List all active roles |
+| `GET` | `/api/roles/{uid}` | `CanViewRoles` | Get role detail including assigned users |
+| `POST` | `/api/roles` | `CanCreateRole` | Create role |
+| `PUT` | `/api/roles/{uid}` | `CanUpdateRole` | Update name / description |
+| `DELETE` | `/api/roles/{uid}` | `CanDeleteRole` | Soft-delete (fails if role has assigned users) |
+| `PUT` | `/api/roles/{uid}/permissions` | `CanManageRolePermissions` | Replace full permission set |
+| `POST` | `/api/roles/{uid}/permissions` | `CanManageRolePermissions` | Add single permission |
+| `DELETE` | `/api/roles/{uid}/permissions/{permission}` | `CanManageRolePermissions` | Remove single permission |
+| `GET` | `/api/roles/available-permissions` | `CanViewRoles` | All permissions grouped by category |
+
+**Response shapes:**
+
+```typescript
+// GET /api/roles  (each item)
+{ uid: string; name: string; description: string | null; isActive: boolean; createdAt: string; permissions: string[]; userCount: number }
+
+// GET /api/roles/{uid}
+{ uid: string; name: string; description: string | null; isActive: boolean; createdAt: string; permissions: string[];
+  users: { uid: string; firstName: string; lastName: string; email: string }[] }
+
+// POST /api/roles  body
+{ name: string; description?: string; permissions?: string[] }
+
+// PUT /api/roles/{uid}  body
+{ name?: string; description?: string }
+
+// GET /api/roles/available-permissions
+{ group: string; permissions: { name: string; value: number }[] }[]
+```
+
+**Key behaviours:**
+- `GetAll` only returns active roles (soft-delete pattern — `IsActive = false`)
+- Cannot delete a role that is still assigned to users (returns 400)
+- Permissions are stored and exchanged as hex strings matching the frontend `permissionToHex` helper
 
 ### Styling
 
