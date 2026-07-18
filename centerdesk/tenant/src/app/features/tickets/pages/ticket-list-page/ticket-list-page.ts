@@ -134,6 +134,10 @@ export class TicketListPage implements OnInit {
   }
 
   protected viewTicket(ticket: TicketSummary): void {
+    if (!this.canViewDetails()) {
+      this.toast.error('You do not have permission to view ticket details.');
+      return;
+    }
     this.router.navigate(['/tickets', ticket.uid]);
   }
 

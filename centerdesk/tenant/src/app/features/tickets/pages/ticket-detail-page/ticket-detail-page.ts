@@ -9,7 +9,9 @@ import { PermissionService } from '../../../../core/auth/permission.service';
 import { ToastService } from '../../../../shared/services/toast.service';
 import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
 import {
+  ReplyMessageRequest,
   Ticket,
+  TicketMessage,
   TicketPriority,
   TicketStatus,
   TICKET_PRIORITY_LABELS,
@@ -40,6 +42,11 @@ export class TicketDetailPage implements OnInit {
   protected readonly isSubmitting = signal(false);
   protected readonly modalError = signal<string | null>(null);
 
+  protected readonly messages = signal<TicketMessage[]>([]);
+  protected readonly messagesLoading = signal(false);
+  protected readonly isReplying = signal(false);
+  protected readonly replyError = signal<string | null>(null);
+
   protected readonly canAssign = computed(() =>
     this.permissions.has(TenantPermission.CanAssignTicket)
   );
@@ -51,6 +58,10 @@ export class TicketDetailPage implements OnInit {
   );
   protected readonly canReopen = computed(() =>
     this.permissions.has(TenantPermission.CanReopenTicket)
+  );
+  // Backend enforces CanCreateTicket on the reply endpoint.
+  protected readonly canReply = computed(() =>
+    this.permissions.has(TenantPermission.CanCreateTicket)
   );
 
   protected readonly updateStatusOptions = [
@@ -77,22 +88,63 @@ export class TicketDetailPage implements OnInit {
     remark: new FormControl('', [Validators.required]),
   });
 
+  protected readonly replyForm = new FormGroup({
+    toEmail: new FormControl('', [Validators.required, Validators.email]),
+    cc: new FormControl(''),
+    body: new FormControl('', [Validators.required]),
+  });
+
   ngOnInit(): void {
-    this.loadTicket(this.uid());
+    const uid = this.uid();
+    // Fire both requests in parallel — the conversation no longer waits for the
+    // ticket fetch to finish before it starts loading.
+    this.loadTicket(uid);
+    this.loadMessages(uid);
   }
 
   private loadTicket(uid: string): void {
     this.isLoading.set(true);
     this.ticketService.getOne(uid).subscribe({
       next: (res) => {
-        if (res.success) this.ticket.set(res.content);
+        if (res.success) {
+          this.ticket.set(res.content);
+          this.replyForm.patchValue({ toEmail: res.content.senderEmail });
+        }
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
+        this.toast.error(err.error?.message || 'Unable to open this ticket.');
         this.router.navigate(['/tickets']);
       },
     });
+  }
+
+  private loadMessages(uid: string): void {
+    this.messagesLoading.set(true);
+    this.ticketService.getMessages(uid).subscribe({
+      next: (res) => {
+        if (res.success && res.content) {
+          this.messages.set(res.content);
+          this.markInboundRead(uid, res.content);
+        }
+        this.messagesLoading.set(false);
+      },
+      error: () => this.messagesLoading.set(false),
+    });
+  }
+
+  // Opening a conversation marks its unread inbound mail as read (fire-and-forget).
+  private markInboundRead(uid: string, msgs: TicketMessage[]): void {
+    for (const m of msgs.filter((x) => x.isInbound && !x.isRead)) {
+      this.ticketService.markMessageRead(uid, m.uid).subscribe({
+        next: () =>
+          this.messages.update((list) =>
+            list.map((x) => (x.uid === m.uid ? { ...x, isRead: true } : x))
+          ),
+        error: () => {},
+      });
+    }
   }
 
   protected goBack(): void {
@@ -210,6 +262,39 @@ export class TicketDetailPage implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.modalError.set(err.error?.message || 'An error occurred.');
         this.isSubmitting.set(false);
+      },
+    });
+  }
+
+  protected onReply(): void {
+    if (this.isReplying()) return;
+    if (this.replyForm.invalid) { this.replyForm.markAllAsTouched(); return; }
+    this.isReplying.set(true);
+    this.replyError.set(null);
+    const v = this.replyForm.getRawValue();
+
+    const req: ReplyMessageRequest = {
+      toEmail: v.toEmail!,
+      body: v.body!,
+      cc: v.cc || null,
+      channel: 'Email',
+    };
+
+    this.ticketService.replyMessage(this.uid(), req).subscribe({
+      next: (res) => {
+        if (res.success && res.content) {
+          this.messages.update((list) => [...list, res.content]);
+          this.replyForm.patchValue({ body: '', cc: '' });
+          this.replyForm.get('body')?.markAsUntouched();
+          this.toast.success('Reply sent.');
+        } else {
+          this.replyError.set(res.message || 'Failed to send reply.');
+        }
+        this.isReplying.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.replyError.set(err.error?.message || 'An error occurred.');
+        this.isReplying.set(false);
       },
     });
   }

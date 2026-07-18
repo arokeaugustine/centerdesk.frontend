@@ -310,13 +310,6 @@
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-3 mt-4">
-            <input type="checkbox" formControlName="isAdmin" id="isAdmin"
-              class="h-4 w-4 rounded border-gray-300 accent-brand-500 dark:border-gray-700 cursor-pointer" />
-            <label for="isAdmin" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-              Grant admin privileges
-            </label>
-          </div>
           @if (formError()) {
             <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">
               {{ formError() }}

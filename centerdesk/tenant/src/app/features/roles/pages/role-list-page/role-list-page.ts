@@ -1,14 +1,13 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { NgClass } from '@angular/common';
 import { Router } from '@angular/router';
 import { RoleService } from '../../services/role.service';
-import { AvailablePermission, AvailablePermissionGroup, RoleDetail, RoleSummary } from '../../models/role.models';
+import { AvailablePermissionGroup, RoleDetail, RoleSummary } from '../../models/role.models';
 import { TenantPermission } from '../../../../core/auth/auth.models';
 import { PermissionService } from '../../../../core/auth/permission.service';
 import { ToastService } from '../../../../shared/services/toast.service';
-import { PERMISSION_LABELS, hexToPermission } from '../../../users/models/user.models';
+import { PERMISSION_LABELS } from '../../../users/models/user.models';
 import { Button } from '../../../../shared/components/button/button';
 import { InputField } from '../../../../shared/components/input-field/input-field';
 import { Label } from '../../../../shared/components/label/label';
@@ -17,7 +16,7 @@ type ModalType = 'create' | 'edit' | 'users' | 'permissions' | 'delete' | null;
 
 @Component({
   selector: 'app-role-list-page',
-  imports: [ReactiveFormsModule, NgClass, Button, InputField, Label],
+  imports: [ReactiveFormsModule, Button, InputField, Label],
   templateUrl: './role-list-page.html',
 })
 export class RoleListPage implements OnInit {
@@ -139,18 +138,14 @@ export class RoleListPage implements OnInit {
     this.modalError.set(null);
   }
 
-  protected permissionHex(p: AvailablePermission): string {
-    return p.value.toString(16).padStart(4, '0');
+  protected isPermissionSelected(name: string): boolean {
+    return this.selectedPermissions().has(name);
   }
 
-  protected isPermissionSelected(hex: string): boolean {
-    return this.selectedPermissions().has(hex);
-  }
-
-  protected togglePermission(hex: string): void {
+  protected togglePermission(name: string): void {
     this.selectedPermissions.update(s => {
       const next = new Set(s);
-      next.has(hex) ? next.delete(hex) : next.add(hex);
+      next.has(name) ? next.delete(name) : next.add(name);
       return next;
     });
   }
@@ -253,9 +248,9 @@ export class RoleListPage implements OnInit {
     this.router.navigate(['/users', uid]);
   }
 
-  protected permissionLabel(hex: string): string {
-    const p = hexToPermission(hex);
-    return p !== null ? (PERMISSION_LABELS[p] ?? hex) : hex;
+  protected permissionLabel(name: string): string {
+    const val = TenantPermission[name as keyof typeof TenantPermission];
+    return val !== undefined ? (PERMISSION_LABELS[val] ?? name) : name;
   }
 
   protected userInitials(firstName: string, lastName: string): string {

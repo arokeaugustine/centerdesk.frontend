@@ -32,7 +32,6 @@ export interface UpdateRoleRequest {
 
 export interface AvailablePermission {
   name: string;
-  value: number;
 }
 
 export interface AvailablePermissionGroup {

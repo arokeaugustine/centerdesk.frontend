@@ -17,10 +17,13 @@
       Back to Tickets
     </button>
 
-    <!-- Header Card -->
-    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 mb-4">
-      <div class="flex items-start justify-between gap-6 flex-wrap">
-        <div class="flex-1 min-w-0">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Conversation column -->
+      <div class="lg:col-span-2 space-y-4">
+
+        <!-- Subject header -->
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
           <div class="flex items-center gap-2 mb-2 flex-wrap">
             <span class="font-mono text-xs font-medium text-gray-400 dark:text-gray-500">{{ t.ticketNumber }}</span>
             <span
@@ -44,146 +47,234 @@
             &lt;{{ t.senderEmail }}&gt;
           </p>
         </div>
-        <div class="shrink-0 text-right space-y-2">
-          <div>
-            <p class="text-xs text-gray-400 dark:text-gray-500">Created</p>
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ formatDate(t.createdAt) }}</p>
+
+        <!-- Conversation thread -->
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Conversation ({{ messages().length }})</h2>
           </div>
-          <div>
-            <p class="text-xs text-gray-400 dark:text-gray-500">Assigned To</p>
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ assignedToName(t) }}</p>
-          </div>
-          @if (t.closedAt) {
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500">Closed At</p>
-              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ formatDate(t.closedAt) }}</p>
+
+          @if (messagesLoading()) {
+            <div class="flex flex-col items-center justify-center gap-3 py-16">
+              <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Loading conversations…</p>
             </div>
-          }
-        </div>
-      </div>
+          } @else if (messages().length === 0) {
+            <div class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-600">
+              <svg class="h-10 w-10 mb-3" viewBox="0 0 24 24" fill="none">
+                <path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v7.5A2.75 2.75 0 0 1 17.25 17H9l-4 4v-4H6.75A2.75 2.75 0 0 1 4 14.25v-7.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              </svg>
+              <p class="text-sm font-medium">No messages yet</p>
+            </div>
+          } @else {
+            <div class="p-4 md:p-6 space-y-4">
+              @for (msg of messages(); track msg.uid) {
+                <div class="flex" [class.justify-end]="!msg.isInbound">
+                  <div
+                    class="w-full max-w-[92%] rounded-xl border p-4"
+                    [ngClass]="msg.isInbound
+                      ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800'
+                      : 'bg-brand-50 dark:bg-brand-900/10 border-brand-100 dark:border-brand-900/30'"
+                  >
+                    <div class="flex items-start justify-between gap-3 flex-wrap mb-2">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-gray-300 shrink-0">
+                          {{ (msg.fromName || msg.fromEmail).charAt(0).toUpperCase() }}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ msg.fromName || msg.fromEmail }}</p>
+                          <p class="text-xs text-gray-400 dark:text-gray-500 truncate">&lt;{{ msg.fromEmail }}&gt; → {{ msg.toEmail }}</p>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0">
+                        @if (msg.isInbound) {
+                          <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">Inbound</span>
+                        } @else {
+                          <span class="text-xs px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">Outbound</span>
+                        }
+                        <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatDate(msg.createdAt) }}</span>
+                      </div>
+                    </div>
 
-      @if (t.resolutionSummary) {
-        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Resolution Summary</p>
-          <p class="text-sm text-gray-700 dark:text-gray-300">{{ t.resolutionSummary }}</p>
-        </div>
-      }
-    </div>
+                    @if (msg.cc) {
+                      <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">Cc: {{ msg.cc }}</p>
+                    }
+                    @if (msg.subject) {
+                      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ msg.subject }}</p>
+                    }
 
-    <!-- Action Bar -->
-    @if (canAssign() || canUpdateStatus() || (!t.isClosed && canClose()) || (t.isClosed && canReopen())) {
-      <div class="flex flex-wrap gap-2 mb-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
-        @if (canAssign()) {
-          <app-button size="sm" (btnClick)="openModal('assign')">
-            <svg class="h-3.5 w-3.5 mr-1 inline" viewBox="0 0 24 24" fill="none">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 3.25C9.377 3.25 7.25 5.377 7.25 8s2.127 4.75 4.75 4.75S16.75 10.623 16.75 8 14.623 3.25 12 3.25ZM8.75 8a3.25 3.25 0 1 1 6.5 0 3.25 3.25 0 0 1-6.5 0ZM8 14.75A3.75 3.75 0 0 0 4.25 18.5V20a.75.75 0 0 0 1.5 0v-1.5A2.25 2.25 0 0 1 8 16.25h8A2.25 2.25 0 0 1 18.25 18.5V20a.75.75 0 0 0 1.5 0v-1.5A3.75 3.75 0 0 0 16 14.75H8Z" fill="currentColor"/>
-            </svg>
-            Assign
-          </app-button>
-        }
-        @if (canUpdateStatus()) {
-          <app-button size="sm" (btnClick)="openModal('status')">
-            <svg class="h-3.5 w-3.5 mr-1 inline" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3v1m0 16v1M4.22 4.22l.707.707m12.727 12.727.707.707M3 12h1m16 0h1M4.22 19.78l.707-.707M18.364 5.636l.707-.707" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            Update Status
-          </app-button>
-        }
-        @if (!t.isClosed && canClose()) {
-          <app-button size="sm" (btnClick)="openModal('close')">
-            <svg class="h-3.5 w-3.5 mr-1 inline" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138 3.42 3.42 0 0 0 .806 1.946 3.42 3.42 0 0 1 0 4.438 3.42 3.42 0 0 0-.806 1.946 3.42 3.42 0 0 1-3.138 3.138 3.42 3.42 0 0 0-1.946.806 3.42 3.42 0 0 1-4.438 0 3.42 3.42 0 0 0-1.946-.806 3.42 3.42 0 0 1-3.138-3.138 3.42 3.42 0 0 0-.806-1.946 3.42 3.42 0 0 1 0-4.438 3.42 3.42 0 0 0 .806-1.946 3.42 3.42 0 0 1 3.138-3.138z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            Close Ticket
-          </app-button>
-        }
-        @if (t.isClosed && canReopen()) {
-          <app-button size="sm" (btnClick)="openModal('reopen')">
-            <svg class="h-3.5 w-3.5 mr-1 inline" viewBox="0 0 24 24" fill="none">
-              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Reopen
-          </app-button>
-        }
-      </div>
-    }
+                    @if (msg.body && msg.body.trim().length > 0) {
+                      <!-- Email content rendered on an isolated light surface so inbound HTML/plain-text
+                           bodies stay readable regardless of the app's light/dark theme. -->
+                      <div
+                        class="email-body mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-relaxed text-gray-800 break-words overflow-x-auto"
+                        [innerHTML]="msg.body | safeHtml"
+                      ></div>
+                    } @else {
+                      <p class="text-sm italic text-gray-400 dark:text-gray-500">(No message content)</p>
+                    }
 
-    <!-- Messages -->
-    @if (t.messages.length > 0) {
-      <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 mb-4">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Messages ({{ t.messages.length }})</h2>
-        </div>
-        <div class="divide-y divide-gray-100 dark:divide-gray-800">
-          @for (msg of t.messages; track msg.id) {
-            <div class="px-6 py-5">
-              <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                <div class="flex items-center gap-2.5">
-                  <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-gray-300 shrink-0">
-                    {{ msg.fromName.charAt(0).toUpperCase() }}
+                    @if (msg.attachments.length > 0) {
+                      <div class="mt-3 flex flex-wrap gap-2">
+                        @for (att of msg.attachments; track att.uid) {
+                          <span class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                            {{ att.fileName }}
+                          </span>
+                        }
+                      </div>
+                    }
                   </div>
-                  <div>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ msg.fromName }}</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 ml-1.5">&lt;{{ msg.fromEmail }}&gt;</span>
-                  </div>
-                  @if (msg.isInbound) {
-                    <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">Inbound</span>
-                  } @else {
-                    <span class="text-xs px-1.5 py-0.5 rounded bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400">Outbound</span>
-                  }
-                </div>
-                <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(msg.createdAt) }}</span>
-              </div>
-              <div
-                class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed ml-10"
-                [innerHTML]="msg.body | safeHtml"
-              ></div>
-              @if (msg.attachments.length > 0) {
-                <div class="mt-3 ml-10 flex flex-wrap gap-2">
-                  @for (att of msg.attachments; track att.id) {
-                    <span class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400">
-                      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      </svg>
-                      {{ att.fileName }}
-                    </span>
-                  }
                 </div>
               }
             </div>
           }
         </div>
-      </div>
-    }
 
-    <!-- Status History -->
-    @if (t.statusHistories.length > 0) {
-      <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Status History</h2>
-        </div>
-        <div class="px-6 py-5">
-          <ol class="relative border-l-2 border-gray-200 dark:border-gray-700 space-y-5 pl-6">
-            @for (entry of t.statusHistories; track entry.id) {
-              <li class="relative">
-                <div class="absolute -left-[29px] h-3.5 w-3.5 rounded-full border-2 border-white dark:border-gray-900 bg-gray-400 dark:bg-gray-500"></div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    [ngClass]="statusBadgeClass(entry.status)"
-                  >{{ statusLabel(entry.status) }}</span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(entry.changedAt) }}</span>
-                </div>
-                @if (entry.remark) {
-                  <p class="mt-1 text-xs text-gray-600 dark:text-gray-400 italic">"{{ entry.remark }}"</p>
-                }
-              </li>
+        <!-- Reply composer -->
+        @if (t.isClosed) {
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 px-6 py-5 text-sm text-gray-500 dark:text-gray-400">
+            This ticket is closed. Reopen it to send a reply.
+          </div>
+        } @else if (canReply()) {
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Reply</h2>
+            @if (replyError()) {
+              <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ replyError() }}</div>
             }
-          </ol>
-        </div>
-      </div>
-    }
+            <form [formGroup]="replyForm" (ngSubmit)="onReply()" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <app-label>To <span class="text-error-500">*</span></app-label>
+                  <app-input-field type="email" placeholder="recipient@example.com" formControlName="toEmail" />
+                  @if (replyForm.get('toEmail')?.invalid && replyForm.get('toEmail')?.touched) {
+                    <p class="mt-1 text-xs text-error-500">Valid email required</p>
+                  }
+                </div>
+                <div>
+                  <app-label>Cc <span class="text-xs font-normal text-gray-400">(optional)</span></app-label>
+                  <app-input-field placeholder="cc@example.com" formControlName="cc" />
+                </div>
+              </div>
+              <div>
+                <app-label>Message <span class="text-error-500">*</span></app-label>
+                <textarea
+                  formControlName="body"
+                  rows="5"
+                  placeholder="Type your reply…"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                ></textarea>
+                @if (replyForm.get('body')?.invalid && replyForm.get('body')?.touched) {
+                  <p class="mt-1 text-xs text-error-500">Required</p>
+                }
+              </div>
+              <div class="flex justify-end">
+                <app-button size="sm" [loading]="isReplying()" (btnClick)="onReply()">Send Reply</app-button>
+              </div>
+            </form>
+          </div>
+        }
 
+      </div>
+
+      <!-- Right rail -->
+      <div class="space-y-4">
+
+        <!-- Details -->
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Details</h2>
+          <div class="space-y-3 text-sm">
+            <div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Status</p>
+              <span
+                class="mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                [ngClass]="statusBadgeClass(t.status)"
+              >{{ statusLabel(t.status) }}</span>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Priority</p>
+              <span
+                class="mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                [ngClass]="priorityBadgeClass(t.priority)"
+              >{{ priorityLabel(t.priority) }}</span>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Assigned To</p>
+              <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ assignedToName(t) }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Created</p>
+              <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ formatDate(t.createdAt) }}</p>
+            </div>
+            @if (t.closedAt) {
+              <div>
+                <p class="text-xs text-gray-400 dark:text-gray-500">Closed At</p>
+                <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ formatDate(t.closedAt) }}</p>
+              </div>
+            }
+          </div>
+          @if (t.resolutionSummary) {
+            <div class="pt-4 border-t border-gray-100 dark:border-gray-800">
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Resolution Summary</p>
+              <p class="text-sm text-gray-700 dark:text-gray-300">{{ t.resolutionSummary }}</p>
+            </div>
+          }
+        </div>
+
+        <!-- Actions -->
+        @if (canAssign() || canUpdateStatus() || (!t.isClosed && canClose()) || (t.isClosed && canReopen())) {
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
+            <div class="flex flex-col gap-2">
+              @if (canAssign()) {
+                <app-button size="sm" (btnClick)="openModal('assign')">Assign</app-button>
+              }
+              @if (canUpdateStatus()) {
+                <app-button size="sm" (btnClick)="openModal('status')">Update Status</app-button>
+              }
+              @if (!t.isClosed && canClose()) {
+                <app-button size="sm" (btnClick)="openModal('close')">Close Ticket</app-button>
+              }
+              @if (t.isClosed && canReopen()) {
+                <app-button size="sm" (btnClick)="openModal('reopen')">Reopen</app-button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Status History -->
+        @if (t.statusHistories.length > 0) {
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Status History</h2>
+            </div>
+            <div class="px-6 py-5">
+              <ol class="relative border-l-2 border-gray-200 dark:border-gray-700 space-y-5 pl-6">
+                @for (entry of t.statusHistories; track entry.id) {
+                  <li class="relative">
+                    <div class="absolute -left-[29px] h-3.5 w-3.5 rounded-full border-2 border-white dark:border-gray-900 bg-gray-400 dark:bg-gray-500"></div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span
+                        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                        [ngClass]="statusBadgeClass(entry.status)"
+                      >{{ statusLabel(entry.status) }}</span>
+                      <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(entry.changedAt) }}</span>
+                    </div>
+                    @if (entry.remark) {
+                      <p class="mt-1 text-xs text-gray-600 dark:text-gray-400 italic">"{{ entry.remark }}"</p>
+                    }
+                  </li>
+                }
+              </ol>
+            </div>
+          </div>
+        }
+
+      </div>
+
+    </div>
   </div>
 
   <!-- Assign Modal -->

@@ -10,6 +10,7 @@ The .NET API lives at `C:\Users\AugustineAroke\source\repos\DeskApp\CentralDesk.
 
 The UI design reference template lives at `C:\Users\AugustineAroke\source\repos\DeskApp\angular template`. Use it for design patterns, component structure, modal layouts, table styles, and Tailwind class conventions when building new pages.
 
+
 ## Commands
 
 ```bash

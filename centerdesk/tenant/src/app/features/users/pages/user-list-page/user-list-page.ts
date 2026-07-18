@@ -58,7 +58,6 @@ export class UserListPage implements OnInit {
     unit: new FormControl(''),
     group: new FormControl(''),
     division: new FormControl(''),
-    isAdmin: new FormControl(false),
     roleUid: new FormControl(''),
   });
 
@@ -109,7 +108,7 @@ export class UserListPage implements OnInit {
   protected viewUser(uid: string): void { this.router.navigate(['/users', uid]); }
 
   protected openCreate(): void {
-    this.createForm.reset({ isAdmin: false });
+    this.createForm.reset();
     this.formError.set(null);
     this.showCreateModal.set(true);
   }
@@ -131,7 +130,6 @@ export class UserListPage implements OnInit {
       unit: v.unit || null,
       group: v.group || null,
       division: v.division || null,
-      isAdmin: v.isAdmin ?? false,
       roleUids: v.roleUid ? [v.roleUid] : undefined,
     }).subscribe({
       next: (res) => {

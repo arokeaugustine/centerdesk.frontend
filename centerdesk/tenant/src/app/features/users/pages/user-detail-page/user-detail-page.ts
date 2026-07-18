@@ -71,7 +71,6 @@ export class UserDetailPage implements OnInit {
     unit: new FormControl(''),
     group: new FormControl(''),
     division: new FormControl(''),
-    isAdmin: new FormControl(false),
   });
 
   protected readonly passwordForm = new FormGroup({
@@ -119,7 +118,7 @@ export class UserDetailPage implements OnInit {
       this.editForm.reset({
         firstName: u.firstName, lastName: u.lastName,
         phoneNumber: u.phoneNumber ?? '', unit: u.unit ?? '',
-        group: u.group ?? '', division: u.division ?? '', isAdmin: u.isAdmin,
+        group: u.group ?? '', division: u.division ?? '',
       });
     }
     if (type === 'password') this.passwordForm.reset();
@@ -152,7 +151,6 @@ export class UserDetailPage implements OnInit {
       unit: v.unit || null,
       group: v.group || null,
       division: v.division || null,
-      isAdmin: v.isAdmin,
     }).subscribe({
       next: (res) => {
         if (res.success) {

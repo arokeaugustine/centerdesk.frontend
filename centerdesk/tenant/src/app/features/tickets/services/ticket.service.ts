@@ -6,8 +6,10 @@ import {
   CloseTicketRequest,
   CreateTicketRequest,
   ReopenTicketRequest,
+  ReplyMessageRequest,
   Ticket,
   TicketListContent,
+  TicketMessage,
   TicketSearchQuery,
   UpdateTicketStatusRequest,
 } from '../models/ticket.models';
@@ -67,5 +69,25 @@ export class TicketService {
 
   reopen(uid: string, req: ReopenTicketRequest) {
     return this.http.post<ApiResult<Ticket>>(`${this.baseUrl}/api/tickets/${uid}/reopen`, req);
+  }
+
+  getMessages(ticketUid: string) {
+    return this.http.get<ApiResult<TicketMessage[]>>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/messages`
+    );
+  }
+
+  replyMessage(ticketUid: string, req: ReplyMessageRequest) {
+    return this.http.post<ApiResult<TicketMessage>>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/messages/reply`,
+      req
+    );
+  }
+
+  markMessageRead(ticketUid: string, messageUid: string) {
+    return this.http.patch<ApiResult<void>>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/messages/${messageUid}/read`,
+      {}
+    );
   }
 }

@@ -65,6 +65,11 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/email-desks/email-desks.routes').then(m => m.emailDesksRoutes),
       },
+      {
+        path: 'service-categories',
+        loadChildren: () =>
+          import('./features/service-categories/service-categories.routes').then(m => m.serviceCategoriesRoutes),
+      },
     ],
   },
 ];

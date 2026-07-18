@@ -26,7 +26,6 @@ export interface TicketUser {
 }
 
 export interface TicketAttachment {
-  id: number;
   uid: string;
   fileName: string;
   contentType: string;
@@ -34,8 +33,14 @@ export interface TicketAttachment {
   createdAt: string;
 }
 
+export interface TicketMessageSender {
+  uid: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export interface TicketMessage {
-  id: number;
   uid: string;
   fromEmail: string;
   fromName: string;
@@ -43,10 +48,11 @@ export interface TicketMessage {
   subject: string;
   body: string;
   cc: string | null;
+  bcc: string | null;
   channel: string;
   isInbound: boolean;
   isRead: boolean;
-  sentBy: number | null;
+  sentBy: TicketMessageSender | null;
   createdAt: string;
   attachments: TicketAttachment[];
 }
@@ -148,6 +154,14 @@ export interface CloseTicketRequest {
 
 export interface ReopenTicketRequest {
   remark: string;
+}
+
+export interface ReplyMessageRequest {
+  toEmail: string;
+  body: string;
+  cc?: string | null;
+  bcc?: string | null;
+  channel?: string | null;
 }
 
 export interface TicketSearchQuery {
