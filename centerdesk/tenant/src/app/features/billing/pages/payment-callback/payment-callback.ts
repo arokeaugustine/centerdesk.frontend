@@ -28,11 +28,13 @@ export class PaymentCallback implements OnInit {
 
     this.billingService.verifyPayment(this.reference).subscribe({
       next: (res) => {
-        if (res.success) {
+        if (res.success && res.content?.status === 'paid') {
           this.verifyResult.set(res.content);
           this.isSuccess.set(true);
         } else {
-          this.errorMessage.set(res.message || 'Payment verification failed. Please contact support.');
+          this.errorMessage.set(
+            res.content?.message || res.message || 'Payment could not be confirmed yet. Please check your billing page.'
+          );
         }
         this.isVerifying.set(false);
       },

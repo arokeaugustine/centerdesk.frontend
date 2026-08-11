@@ -2,9 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import {
+  AddNoteRequest,
   AssignTicketRequest,
   CloseTicketRequest,
   CreateTicketRequest,
+  ForwardTicketRequest,
   ReopenTicketRequest,
   ReplyMessageRequest,
   Ticket,
@@ -13,6 +15,7 @@ import {
   TicketSearchQuery,
   UpdateTicketStatusRequest,
 } from '../models/ticket.models';
+import { SubTicketSummary } from '../../sub-tickets/models/sub-ticket.models';
 
 interface Paging {
   pageIndex: number;
@@ -84,10 +87,33 @@ export class TicketService {
     );
   }
 
-  markMessageRead(ticketUid: string, messageUid: string) {
-    return this.http.patch<ApiResult<void>>(
-      `${this.baseUrl}/api/tickets/${ticketUid}/messages/${messageUid}/read`,
+  /** Internal-only note — never sent to the customer. See CanAddInternalNote. */
+  addNote(ticketUid: string, req: AddNoteRequest) {
+    return this.http.post<ApiResult<TicketMessage>>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/messages/notes`,
+      req
+    );
+  }
+
+  markAllMessagesRead(ticketUid: string) {
+    return this.http.patch<void>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/messages/read-all`,
       {}
+    );
+  }
+
+  // --- Forwarding / sub-tickets ------------------------------------------------------
+
+  getSubTickets(ticketUid: string) {
+    return this.http.get<ApiResult<SubTicketSummary[]>>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/sub-tickets`
+    );
+  }
+
+  forward(ticketUid: string, req: ForwardTicketRequest) {
+    return this.http.post<ApiResult<SubTicketSummary>>(
+      `${this.baseUrl}/api/tickets/${ticketUid}/forward`,
+      req
     );
   }
 }

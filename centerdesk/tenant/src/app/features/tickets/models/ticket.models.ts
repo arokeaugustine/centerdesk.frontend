@@ -6,6 +6,12 @@ export enum TicketStatus {
   Resolved = 4,
   Closed = 5,
   Reopened = 6,
+  // Set on the parent ticket the moment it's forwarded (see ForwardTicketRequest below);
+  // moves back off this status once the resolution team replies or the sub-ticket is returned.
+  AwaitingResolutionTeamFeedback = 7,
+  // Set on both the sub-ticket and the parent ticket when a resolution-team member sends
+  // a sub-ticket back to the original agent instead of resolving it themselves.
+  Returned = 8,
 }
 
 export enum TicketPriority {
@@ -46,12 +52,15 @@ export interface TicketMessage {
   fromName: string;
   toEmail: string;
   subject: string;
+  /** Raw HTML body; rendered sanitized in the thread so links and formatting work. */
   body: string;
   cc: string | null;
   bcc: string | null;
   channel: string;
   isInbound: boolean;
   isRead: boolean;
+  /** True for internal-only notes (never sent to the customer) — see AddNoteRequest. */
+  isInternal: boolean;
   sentBy: TicketMessageSender | null;
   createdAt: string;
   attachments: TicketAttachment[];
@@ -123,8 +132,9 @@ export interface Ticket {
   assignedTo: TicketUser | null;
   closedByNavigation: TicketUser | null;
   emailDesk: TicketEmailDesk | null;
-  messages: TicketMessage[];
-  statusHistories: TicketStatusHistoryEntry[];
+  // Not returned by the ticket-detail endpoint today — optional so the view doesn't crash
+  // when it's absent (the API's TicketDetailDto omits it).
+  statusHistories?: TicketStatusHistoryEntry[];
 }
 
 export interface CreateTicketRequest {
@@ -164,6 +174,19 @@ export interface ReplyMessageRequest {
   channel?: string | null;
 }
 
+/** Internal-only note on a ticket — see MessagesController.AddNote / CanAddInternalNote. */
+export interface AddNoteRequest {
+  body: string;
+}
+
+/** Forwards a ticket to a named member of a resolution team, creating a sub-ticket. */
+export interface ForwardTicketRequest {
+  resolutionTeamUid: string;
+  assigneeUserUid: string;
+  message: string;
+  priority?: TicketPriority | null;
+}
+
 export interface TicketSearchQuery {
   search?: string;
   status?: TicketStatus | null;
@@ -182,6 +205,8 @@ export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   [TicketStatus.Resolved]: 'Resolved',
   [TicketStatus.Closed]: 'Closed',
   [TicketStatus.Reopened]: 'Reopened',
+  [TicketStatus.AwaitingResolutionTeamFeedback]: 'Awaiting Team Feedback',
+  [TicketStatus.Returned]: 'Returned',
 };
 
 export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {

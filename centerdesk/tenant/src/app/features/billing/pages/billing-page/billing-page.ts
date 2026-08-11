@@ -16,10 +16,12 @@ export class BillingPage implements OnInit {
 
   readonly isLoading = signal(true);
   readonly isUpgrading = signal(false);
+  readonly isRenewing = signal(false);
   readonly subscription = signal<CurrentSubscription | null>(null);
   readonly plans = signal<PlanItem[]>([]);
   readonly loadError = signal<string | null>(null);
   readonly upgradeError = signal<string | null>(null);
+  readonly renewError = signal<string | null>(null);
 
   readonly isModalOpen = signal(false);
   readonly selectedPlan = signal<PlanItem | null>(null);
@@ -83,11 +85,15 @@ export class BillingPage implements OnInit {
     });
   }
 
+  // SubscriptionStatus enum: Trial=0, Active=1, PastDue=2, Suspended=3, Cancelled=4, Expired=5
   getStatusLabel(status: number): string {
     switch (status) {
+      case 0: return 'Trial';
       case 1: return 'Active';
-      case 2: return 'Expired';
-      case 3: return 'Trial';
+      case 2: return 'Past Due';
+      case 3: return 'Suspended';
+      case 4: return 'Cancelled';
+      case 5: return 'Expired';
       default: return 'Inactive';
     }
   }
@@ -95,14 +101,46 @@ export class BillingPage implements OnInit {
   getStatusColor(status: number): 'success' | 'error' | 'warning' | 'primary' {
     switch (status) {
       case 1: return 'success';
-      case 2: return 'error';
-      case 3: return 'warning';
+      case 0: return 'warning';
+      case 2: return 'warning';
+      case 3: return 'error';
+      case 4: return 'error';
+      case 5: return 'error';
       default: return 'primary';
     }
   }
 
+  // BillingCycle enum: Monthly=0, Annual=1
   getCycleLabel(cycle: number): string {
-    return cycle === 2 ? 'Annual' : 'Monthly';
+    return cycle === 1 ? 'Annual' : 'Monthly';
+  }
+
+  // Past Due (2) or Expired (5) — a lapsed paid subscription that can be reactivated.
+  canRenew(): boolean {
+    const status = this.subscription()?.status;
+    return status === 2 || status === 5;
+  }
+
+  renew(): void {
+    if (this.isRenewing()) return;
+
+    this.isRenewing.set(true);
+    this.renewError.set(null);
+
+    this.billingService.renew().subscribe({
+      next: (res) => {
+        if (res.success && res.content?.paymentUrl) {
+          window.location.href = res.content.paymentUrl;
+        } else {
+          this.renewError.set(res.message || 'Failed to start renewal. Please try again.');
+          this.isRenewing.set(false);
+        }
+      },
+      error: () => {
+        this.renewError.set('An error occurred. Please try again.');
+        this.isRenewing.set(false);
+      },
+    });
   }
 
   formatDate(dateStr: string): string {

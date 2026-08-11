@@ -13,11 +13,19 @@ export enum TenantPermission {
   CanReplyTicket = 0x29,
   CanForwardTicket = 0x2A,
   CanEscalateTicket = 0x2B,
+  CanViewTicketAudit = 0x2C,
+  // Lets a role collaborate on a ticket (leave notes visible only to internal staff)
+  // without also being able to speak for the tenant to the customer via CanReplyTicket.
+  CanAddInternalNote = 0x2D,
   CanViewSubTickets = 0x30,
   CanCreateSubTicket = 0x31,
   CanReplySubTicket = 0x32,
   CanViewSubTicketSla = 0x33,
   CanViewSubTicketDetails = 0x34,
+  // Lets a resolution-team member reply to the customer directly from a sub-ticket.
+  // The server additionally requires the sub-ticket's ResolutionTeam.canReplyToCustomer
+  // flag to be true — this permission alone is not sufficient.
+  CanReplyToCustomerFromSubTicket = 0x35,
   CanViewUsers = 0x40,
   CanAddUsers = 0x41,
   CanEditUser = 0x42,

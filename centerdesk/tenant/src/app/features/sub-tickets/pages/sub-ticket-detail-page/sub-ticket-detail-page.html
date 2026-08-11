@@ -1,0 +1,224 @@
+@if (isLoading()) {
+  <div class="flex items-center justify-center h-64">
+    <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+  </div>
+} @else if (subTicket(); as st) {
+
+  <div class="p-4 md:p-6">
+
+    <button
+      (click)="goToParent()"
+      class="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-5 transition-colors"
+    >
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to Ticket {{ st.ticketNumber }}
+    </button>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Conversation column -->
+      <div class="lg:col-span-2 space-y-4">
+
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <span class="font-mono text-xs font-medium text-gray-400 dark:text-gray-500">{{ st.subTicketNumber }}</span>
+            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" [ngClass]="statusBadgeClass(st.status)">
+              {{ statusLabel(st.status) }}
+            </span>
+            @if (st.isClosed) {
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">Closed</span>
+            }
+          </div>
+          <h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ st.subject }}</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Forwarded to <span class="font-medium text-gray-700 dark:text-gray-300">{{ st.resolutionTeamName }}</span>
+            @if (st.assignedTo) {
+              — assigned to <span class="font-medium text-gray-700 dark:text-gray-300">{{ st.assignedTo.firstName }} {{ st.assignedTo.lastName }}</span>
+            }
+          </p>
+          @if (st.description) {
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{{ st.description }}</p>
+          }
+        </div>
+
+        <!-- Internal conversation -->
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Internal conversation ({{ messages().length }})</h2>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Visible only to staff — never sent to the customer.</p>
+          </div>
+
+          @if (messagesLoading()) {
+            <div class="flex items-center justify-center py-16">
+              <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+            </div>
+          } @else if (messages().length === 0) {
+            <div class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-600">
+              <p class="text-sm font-medium">No messages yet</p>
+            </div>
+          } @else {
+            <div class="p-4 md:p-6 space-y-3">
+              @for (msg of messages(); track msg.uid) {
+                <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4">
+                  <div class="flex items-center justify-between gap-3 mb-2">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ msg.fromName || msg.fromEmail }}</p>
+                    <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(msg.createdAt) }}</span>
+                  </div>
+                  <div class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line break-words" [innerHTML]="msg.body"></div>
+                </div>
+              }
+            </div>
+          }
+
+          @if (!st.isClosed) {
+            <div class="border-t border-gray-200 dark:border-gray-800 p-4 md:p-6">
+              @if (replyError()) {
+                <div class="mb-3 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ replyError() }}</div>
+              }
+              <form [formGroup]="replyForm" (ngSubmit)="onReplyInternal()" class="space-y-3">
+                <textarea
+                  formControlName="body"
+                  rows="3"
+                  placeholder="Message the forwarding agent…"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                ></textarea>
+                <div class="flex justify-end">
+                  <app-button size="sm" [loading]="isReplying()" (btnClick)="onReplyInternal()">Send</app-button>
+                </div>
+              </form>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right rail -->
+      <div class="space-y-4">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-3 text-sm">
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">Details</h2>
+          <div>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Priority</p>
+            <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ priorityLabel(st.priority) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Due</p>
+            <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ st.dueDate ? formatDate(st.dueDate) : '—' }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Team can reply to customer?</p>
+            <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ st.resolutionTeamCanReplyToCustomer ? 'Yes' : 'No — relay through the original agent' }}</p>
+          </div>
+        </div>
+
+        @if (!st.isClosed && (canReplyCustomer() || canReplyInternal())) {
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
+            <div class="flex flex-col gap-2">
+              @if (canReplyCustomer()) {
+                <app-button size="sm" (btnClick)="openModal('reply-customer')">Reply to Customer</app-button>
+              }
+              @if (canReplyInternal()) {
+                <app-button size="sm" variant="outline" (btnClick)="openModal('close')">Close Sub-Ticket</app-button>
+                <app-button size="sm" variant="outline" (btnClick)="openModal('return')">Return to Agent</app-button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Reply to Customer Modal -->
+  <app-modal [isOpen]="activeModal() === 'reply-customer'" (close)="closeModal()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white">Reply to Customer</h2>
+    </div>
+    <div class="px-6 py-5">
+      <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+        This goes straight to the original external customer on the parent ticket.
+      </p>
+      @if (modalError()) {
+        <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+      }
+      <form [formGroup]="replyCustomerForm" (ngSubmit)="onReplyCustomer()" class="space-y-4">
+        <div>
+          <app-label>Message <span class="text-error-500">*</span></app-label>
+          <textarea
+            formControlName="body"
+            rows="5"
+            placeholder="Type your reply to the customer…"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+          ></textarea>
+        </div>
+        <div>
+          <app-label>Send As</app-label>
+          <select
+            formControlName="sendAsStatus"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            @for (opt of sendAsStatusOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+      <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+      <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onReplyCustomer()">Send Reply</app-button>
+    </div>
+  </app-modal>
+
+  <!-- Close Modal -->
+  <app-modal [isOpen]="activeModal() === 'close'" (close)="closeModal()" className="max-w-sm">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white">Close Sub-Ticket</h2>
+    </div>
+    <div class="px-6 py-5">
+      @if (modalError()) {
+        <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+      }
+      <form [formGroup]="closeForm" (ngSubmit)="onClose()">
+        <app-label>Resolution Summary <span class="text-xs font-normal text-gray-400">(optional)</span></app-label>
+        <textarea
+          formControlName="resolutionSummary"
+          rows="3"
+          class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+        ></textarea>
+      </form>
+      <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">This closes only the sub-ticket — the parent ticket is untouched.</p>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+      <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+      <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onClose()">Close Sub-Ticket</app-button>
+    </div>
+  </app-modal>
+
+  <!-- Return Modal -->
+  <app-modal [isOpen]="activeModal() === 'return'" (close)="closeModal()" className="max-w-sm">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white">Return to Agent</h2>
+    </div>
+    <div class="px-6 py-5">
+      @if (modalError()) {
+        <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+      }
+      <form [formGroup]="returnForm" (ngSubmit)="onReturn()">
+        <app-label>Remark <span class="text-xs font-normal text-gray-400">(optional)</span></app-label>
+        <textarea
+          formControlName="remark"
+          rows="3"
+          placeholder="Why is this being sent back?…"
+          class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+        ></textarea>
+      </form>
+      <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">This sets both the sub-ticket and the parent ticket to "Returned".</p>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+      <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+      <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onReturn()">Return</app-button>
+    </div>
+  </app-modal>
+}

@@ -6,8 +6,10 @@ export interface CurrentSubscriptionPlan {
 
 export interface CurrentSubscription {
   uid: string;
-  status: number;     // 1=active, 2=expired, 3=trial, 0=inactive
-  billingCycle: number; // 1=monthly, 2=annual
+  // SubscriptionStatus enum (serialized as int): Trial=0, Active=1, PastDue=2, Suspended=3, Cancelled=4, Expired=5
+  status: number;
+  // BillingCycle enum (serialized as int): Monthly=0, Annual=1
+  billingCycle: number;
   startDate: string;
   renewalDate: string;
   plan: CurrentSubscriptionPlan;
@@ -33,8 +35,10 @@ export interface PlanItem {
 export interface UpgradeRequest {
   planId: number;
   billingCycle: 'Monthly' | 'Annual';
+  callbackUrl: string;
 }
 
+// Returned by both /api/subscription/upgrade and /api/subscription/renew
 export interface UpgradeResult {
   paymentUrl: string;
   reference: string;
@@ -45,8 +49,10 @@ export interface UpgradeResult {
 }
 
 export interface VerifyResult {
-  planName: string;
-  billingCycle: string;
-  amountNaira: number;
+  status: string; // 'paid' when confirmed; otherwise the pending invoice status
+  tenantSlug?: string;
+  planName?: string;
+  billingCycle?: string;
+  amountNaira?: number;
   message: string;
 }

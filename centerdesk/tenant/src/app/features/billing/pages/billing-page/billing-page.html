@@ -47,7 +47,7 @@
               </div>
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {{ getCycleLabel(sub.billingCycle) }} billing ·
-                {{ formatCurrency(sub.billingCycle === 2 ? sub.plan.annualPriceNaira : sub.plan.monthlyPriceNaira) }}/{{ sub.billingCycle === 2 ? 'year' : 'month' }}
+                {{ formatCurrency(sub.billingCycle === 1 ? sub.plan.annualPriceNaira : sub.plan.monthlyPriceNaira) }}/{{ sub.billingCycle === 1 ? 'year' : 'month' }}
               </p>
             </div>
           </div>
@@ -78,25 +78,52 @@
           </div>
         </div>
 
-        <!-- Expiry warning bar -->
-        @if (getDaysRemaining() <= 14 && getDaysRemaining() > 0) {
+        <!-- Lapsed subscription (Past Due / Expired) — offer renewal -->
+        @if (canRenew()) {
+          <div class="border-t border-error-100 bg-error-50 px-5 py-4 dark:border-error-500/10 dark:bg-error-500/5 sm:px-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-sm text-error-700 dark:text-error-400">
+                  <span class="font-semibold">
+                    {{ sub.status === 5 ? 'Subscription expired.' : 'Payment past due.' }}
+                  </span>
+                  Renew your {{ sub.plan.name }} plan to restore full access.
+                </p>
+                @if (renewError()) {
+                  <p class="mt-1 text-sm text-error-600 dark:text-error-400">{{ renewError() }}</p>
+                }
+              </div>
+              <button
+                (click)="renew()"
+                [disabled]="isRenewing()"
+                class="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-error-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-error-600 disabled:opacity-60"
+              >
+                @if (isRenewing()) {
+                  <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Redirecting to Paystack…
+                } @else {
+                  Renew Now
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Expiry warning bar (active subscription nearing renewal) -->
+        @if (!canRenew() && getDaysRemaining() <= 14 && getDaysRemaining() > 0) {
           <div class="border-t border-warning-100 bg-warning-50 px-5 py-3 dark:border-warning-500/10 dark:bg-warning-500/5 sm:px-6">
             <p class="text-sm text-warning-700 dark:text-warning-400">
               <span class="font-semibold">Heads up!</span> Your subscription renews in {{ getDaysRemaining() }} days. Upgrade or renew to avoid service interruption.
             </p>
           </div>
         }
-        @if (getDaysRemaining() === 0 && sub.status !== 2) {
+        @if (!canRenew() && getDaysRemaining() === 0) {
           <div class="border-t border-error-100 bg-error-50 px-5 py-3 dark:border-error-500/10 dark:bg-error-500/5 sm:px-6">
             <p class="text-sm text-error-700 dark:text-error-400">
               <span class="font-semibold">Renewal due today.</span> Please upgrade or contact support to continue using the service.
-            </p>
-          </div>
-        }
-        @if (sub.status === 2) {
-          <div class="border-t border-error-100 bg-error-50 px-5 py-3 dark:border-error-500/10 dark:bg-error-500/5 sm:px-6">
-            <p class="text-sm text-error-700 dark:text-error-400">
-              <span class="font-semibold">Subscription expired.</span> Select a plan below to renew and restore access.
             </p>
           </div>
         }

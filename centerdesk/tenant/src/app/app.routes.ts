@@ -51,6 +51,16 @@ export const routes: Routes = [
           import('./features/tickets/tickets.routes').then(m => m.ticketsRoutes),
       },
       {
+        path: 'sub-tickets',
+        loadChildren: () =>
+          import('./features/sub-tickets/sub-tickets.routes').then(m => m.subTicketsRoutes),
+      },
+      {
+        path: 'teams',
+        loadChildren: () =>
+          import('./features/teams/teams.routes').then(m => m.teamsRoutes),
+      },
+      {
         path: 'users',
         loadChildren: () =>
           import('./features/users/users.routes').then(m => m.usersRoutes),

@@ -1,14 +1,17 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgClass } from '@angular/common';
 import { Router } from '@angular/router';
+import { EMPTY, interval, type Observable } from 'rxjs';
+import { catchError, filter, switchMap } from 'rxjs/operators';
 import { TicketService } from '../../services/ticket.service';
 import { TenantPermission } from '../../../../core/auth/auth.models';
 import { PermissionService } from '../../../../core/auth/permission.service';
 import { ToastService } from '../../../../shared/services/toast.service';
 import {
-  Ticket,
+  TicketListContent,
   TicketPriority,
   TicketStatus,
   TicketSummary,
@@ -18,6 +21,7 @@ import {
 import { Button } from '../../../../shared/components/button/button';
 import { InputField } from '../../../../shared/components/input-field/input-field';
 import { Label } from '../../../../shared/components/label/label';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-ticket-list-page',
@@ -29,6 +33,7 @@ export class TicketListPage implements OnInit {
   private readonly permissions = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly tickets = signal<TicketSummary[]>([]);
   protected readonly isLoading = signal(false);
@@ -81,34 +86,52 @@ export class TicketListPage implements OnInit {
 
   ngOnInit(): void {
     this.loadTickets(1);
+    this.startPolling();
   }
 
-  private loadTickets(page: number): void {
-    this.isLoading.set(true);
-    this.currentPage.set(page);
-
-    this.ticketService.getAll({
+  private fetchTickets(page: number): Observable<{ success: boolean; content: TicketListContent | null }> {
+    return this.ticketService.getAll({
       page,
       pageSize: 20,
       search: this.searchTerm || undefined,
       status: this.filterStatus !== '' ? (Number(this.filterStatus) as TicketStatus) : undefined,
       priority: this.filterPriority !== '' ? (Number(this.filterPriority) as TicketPriority) : undefined,
-    }).subscribe({
-      next: (res) => {
-        if (res.success && res.content) {
-          const { data, total, page, pageSize } = res.content;
-          this.tickets.set(data ?? []);
-          this.totalItems.set(total);
-          this.currentPage.set(page);
-          this.hasNextPage.set(page * pageSize < total);
-          this.hasPreviousPage.set(page > 1);
-        }
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      },
     });
+  }
+
+  private applyResult(res: { success: boolean; content: TicketListContent | null }): void {
+    if (res.success && res.content) {
+      const { data, total, page, pageSize } = res.content;
+      this.tickets.set(data ?? []);
+      this.totalItems.set(total);
+      this.currentPage.set(page);
+      this.hasNextPage.set(page * pageSize < total);
+      this.hasPreviousPage.set(page > 1);
+    }
+  }
+
+  private loadTickets(page: number): void {
+    this.isLoading.set(true);
+    this.currentPage.set(page);
+    this.fetchTickets(page).subscribe({
+      next: (res) => {
+        this.applyResult(res);
+        this.isLoading.set(false);
+      },
+      error: () => this.isLoading.set(false),
+    });
+  }
+
+  // Quietly refresh the current page so newly-synced tickets appear without a manual
+  // refresh (no spinner). Pauses when the tab is hidden or while the create modal is open.
+  private startPolling(): void {
+    interval(environment.ticketPollIntervalMs)
+      .pipe(
+        filter(() => !document.hidden && !this.showCreateModal()),
+        switchMap(() => this.fetchTickets(this.currentPage()).pipe(catchError(() => EMPTY))),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((res) => this.applyResult(res));
   }
 
   protected onSearch(): void {
@@ -198,6 +221,8 @@ export class TicketListPage implements OnInit {
       [TicketStatus.Resolved]: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
       [TicketStatus.Closed]: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
       [TicketStatus.Reopened]: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+      [TicketStatus.AwaitingResolutionTeamFeedback]: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+      [TicketStatus.Returned]: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
     };
     return map[status] ?? '';
   }

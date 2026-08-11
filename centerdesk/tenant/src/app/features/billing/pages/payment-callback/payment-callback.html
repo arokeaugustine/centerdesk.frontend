@@ -45,7 +45,7 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <dt class="text-sm text-gray-500 dark:text-gray-400">Amount Charged</dt>
-                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ formatCurrency(result.amountNaira) }}</dd>
+                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ formatCurrency(result.amountNaira ?? 0) }}</dd>
                 </div>
               </dl>
             </div>

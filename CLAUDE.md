@@ -32,9 +32,6 @@ The app is a multi-tenant SaaS product. At startup, `TenantService` extracts the
 - Local: `{slug}.localhost:4200`
 - Production: `{slug}.centerdesk.io`
 
-Two HTTP interceptors attach to every outbound request:
-- `authInterceptor` — adds `Authorization: Bearer {token}`
-- `tenantInterceptor` — adds `X-Tenant-Slug: {slug}`
 
 `tenantGuard` blocks routes when no slug is resolved. `authGuard` blocks authenticated-only routes.
 

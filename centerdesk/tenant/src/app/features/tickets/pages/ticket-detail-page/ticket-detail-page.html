@@ -52,6 +52,9 @@
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Conversation ({{ messages().length }})</h2>
+            @if (canAddNote()) {
+              <app-button size="sm" variant="outline" (btnClick)="openModal('note')">Add Internal Note</app-button>
+            }
           </div>
 
           @if (messagesLoading()) {
@@ -69,12 +72,14 @@
           } @else {
             <div class="p-4 md:p-6 space-y-4">
               @for (msg of messages(); track msg.uid) {
-                <div class="flex" [class.justify-end]="!msg.isInbound">
+                <div class="flex" [class.justify-end]="!msg.isInbound && !msg.isInternal">
                   <div
                     class="w-full max-w-[92%] rounded-xl border p-4"
-                    [ngClass]="msg.isInbound
-                      ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800'
-                      : 'bg-brand-50 dark:bg-brand-900/10 border-brand-100 dark:border-brand-900/30'"
+                    [ngClass]="msg.isInternal
+                      ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/30'
+                      : (msg.isInbound
+                        ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800'
+                        : 'bg-brand-50 dark:bg-brand-900/10 border-brand-100 dark:border-brand-900/30')"
                   >
                     <div class="flex items-start justify-between gap-3 flex-wrap mb-2">
                       <div class="flex items-center gap-2.5 min-w-0">
@@ -83,11 +88,15 @@
                         </div>
                         <div class="min-w-0">
                           <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ msg.fromName || msg.fromEmail }}</p>
-                          <p class="text-xs text-gray-400 dark:text-gray-500 truncate">&lt;{{ msg.fromEmail }}&gt; → {{ msg.toEmail }}</p>
+                          @if (!msg.isInternal) {
+                            <p class="text-xs text-gray-400 dark:text-gray-500 truncate">&lt;{{ msg.fromEmail }}&gt; → {{ msg.toEmail }}</p>
+                          }
                         </div>
                       </div>
                       <div class="flex items-center gap-2 shrink-0">
-                        @if (msg.isInbound) {
+                        @if (msg.isInternal) {
+                          <span class="text-xs px-1.5 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">Internal Note</span>
+                        } @else if (msg.isInbound) {
                           <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">Inbound</span>
                         } @else {
                           <span class="text-xs px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">Outbound</span>
@@ -104,25 +113,41 @@
                     }
 
                     @if (msg.body && msg.body.trim().length > 0) {
-                      <!-- Email content rendered on an isolated light surface so inbound HTML/plain-text
-                           bodies stay readable regardless of the app's light/dark theme. -->
-                      <div
-                        class="email-body mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-relaxed text-gray-800 break-words overflow-x-auto"
-                        [innerHTML]="msg.body | safeHtml"
-                      ></div>
+                      <!-- Rendered as HTML so links and formatting are preserved. Angular's
+                           built-in sanitizer strips scripts/event handlers from untrusted mail. -->
+                      <div class="cd-message-html mt-1 break-words text-sm leading-relaxed text-gray-800 dark:text-gray-200" [innerHTML]="msg.body"></div>
                     } @else {
                       <p class="text-sm italic text-gray-400 dark:text-gray-500">(No message content)</p>
                     }
 
                     @if (msg.attachments.length > 0) {
-                      <div class="mt-3 flex flex-wrap gap-2">
-                        @for (att of msg.attachments; track att.uid) {
-                          <span class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400">
-                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                            </svg>
-                            {{ att.fileName }}
-                          </span>
+                      <div class="mt-3">
+                        <button
+                          type="button"
+                          (click)="toggleAttachments(msg.uid)"
+                          class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                          </svg>
+                          {{ msg.attachments.length }} {{ msg.attachments.length === 1 ? 'attachment' : 'attachments' }}
+                          <svg class="h-3.5 w-3.5 transition-transform" [class.rotate-180]="attachmentsShown(msg.uid)" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </button>
+
+                        @if (attachmentsShown(msg.uid)) {
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            @for (att of msg.attachments; track att.uid) {
+                              <span class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400">
+                                <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
+                                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                                <span class="truncate max-w-[220px]">{{ att.fileName }}</span>
+                                <span class="text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatFileSize(att.fileSizeBytes) }}</span>
+                              </span>
+                            }
+                          </div>
                         }
                       </div>
                     }
@@ -177,6 +202,38 @@
           </div>
         }
 
+        <!-- Sub-tickets -->
+        @if (canViewSubTickets() && subTickets().length > 0) {
+          <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Sub-Tickets ({{ subTickets().length }})</h2>
+            </div>
+            <ul class="divide-y divide-gray-200 dark:divide-gray-800">
+              @for (st of subTickets(); track st.uid) {
+                <li
+                  (click)="openSubTicket(st.uid)"
+                  class="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 cursor-pointer transition-colors"
+                >
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ st.subTicketNumber }}</span>
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="statusBadgeClass(st.status)">
+                        {{ statusLabel(st.status) }}
+                      </span>
+                    </div>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate mt-0.5">{{ st.subject }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      → {{ st.resolutionTeamName }}
+                      @if (st.assignedTo) { ({{ st.assignedTo.firstName }} {{ st.assignedTo.lastName }}) }
+                    </p>
+                  </div>
+                  <span class="text-xs font-medium text-brand-600 dark:text-brand-400 shrink-0">View →</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
       </div>
 
       <!-- Right rail -->
@@ -224,12 +281,15 @@
         </div>
 
         <!-- Actions -->
-        @if (canAssign() || canUpdateStatus() || (!t.isClosed && canClose()) || (t.isClosed && canReopen())) {
+        @if (canAssign() || canUpdateStatus() || (!t.isClosed && canClose()) || (t.isClosed && canReopen()) || (!t.isClosed && canForward())) {
           <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
             <div class="flex flex-col gap-2">
               @if (canAssign()) {
                 <app-button size="sm" (btnClick)="openModal('assign')">Assign</app-button>
+              }
+              @if (!t.isClosed && canForward()) {
+                <app-button size="sm" (btnClick)="openModal('forward')">Forward to Team</app-button>
               }
               @if (canUpdateStatus()) {
                 <app-button size="sm" (btnClick)="openModal('status')">Update Status</app-button>
@@ -245,14 +305,14 @@
         }
 
         <!-- Status History -->
-        @if (t.statusHistories.length > 0) {
+        @if ((t.statusHistories?.length ?? 0) > 0) {
           <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Status History</h2>
             </div>
             <div class="px-6 py-5">
               <ol class="relative border-l-2 border-gray-200 dark:border-gray-700 space-y-5 pl-6">
-                @for (entry of t.statusHistories; track entry.id) {
+                @for (entry of t.statusHistories ?? []; track entry.id) {
                   <li class="relative">
                     <div class="absolute -left-[29px] h-3.5 w-3.5 rounded-full border-2 border-white dark:border-gray-900 bg-gray-400 dark:bg-gray-500"></div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -441,5 +501,102 @@
       </div>
     </div>
   }
+
+  <!-- Add Internal Note Modal (ported Modal component) -->
+  <app-modal [isOpen]="activeModal() === 'note'" (close)="closeModal()" className="max-w-md">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white">Add Internal Note</h2>
+    </div>
+    <div class="px-6 py-5">
+      <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">Visible only to staff — never sent to the customer.</p>
+      @if (modalError()) {
+        <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+      }
+      <form [formGroup]="noteForm" (ngSubmit)="onAddNote()">
+        <textarea
+          formControlName="body"
+          rows="4"
+          placeholder="Add a note for your team…"
+          class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+        ></textarea>
+        @if (noteForm.get('body')?.invalid && noteForm.get('body')?.touched) {
+          <p class="mt-1 text-xs text-error-500">Required</p>
+        }
+      </form>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+      <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+      <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onAddNote()">Add Note</app-button>
+    </div>
+  </app-modal>
+
+  <!-- Forward to Team Modal (ported Modal component) -->
+  <app-modal [isOpen]="activeModal() === 'forward'" (close)="closeModal()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Forward to Resolution Team</h2>
+    </div>
+    <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+      @if (modalError()) {
+        <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+      }
+      <form [formGroup]="forwardForm" (ngSubmit)="onForward()" class="space-y-4">
+        <div>
+          <app-label>Resolution Team <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="resolutionTeamUid"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            <option value="">Select a team…</option>
+            @for (team of teams(); track team.uid) {
+              <option [value]="team.uid">{{ team.parentName ? team.parentName + ' / ' : '' }}{{ team.name }}</option>
+            }
+          </select>
+          @if (forwardForm.get('resolutionTeamUid')?.invalid && forwardForm.get('resolutionTeamUid')?.touched) {
+            <p class="mt-1 text-xs text-error-500">Required</p>
+          }
+          @if (teams().length === 0) {
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">No active resolution teams found — create one under Teams first.</p>
+          }
+        </div>
+        <div>
+          <app-label>Assignee User UID <span class="text-error-500">*</span></app-label>
+          <app-input-field placeholder="UID of a member of that team" formControlName="assigneeUserUid" />
+          <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Forwarding always names a specific team member — it doesn't auto-assign.</p>
+          @if (forwardForm.get('assigneeUserUid')?.invalid && forwardForm.get('assigneeUserUid')?.touched) {
+            <p class="mt-1 text-xs text-error-500">Required</p>
+          }
+        </div>
+        <div>
+          <app-label>Handoff Note <span class="text-error-500">*</span></app-label>
+          <textarea
+            formControlName="message"
+            rows="4"
+            placeholder="What does this team need to do?…"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+          ></textarea>
+          @if (forwardForm.get('message')?.invalid && forwardForm.get('message')?.touched) {
+            <p class="mt-1 text-xs text-error-500">Required</p>
+          }
+        </div>
+        <div>
+          <app-label>Priority <span class="text-xs font-normal text-gray-400">(optional — defaults to the ticket's own priority)</span></app-label>
+          <select
+            formControlName="priority"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            <option value="">Same as ticket</option>
+            <option value="0">Low</option>
+            <option value="1">Normal</option>
+            <option value="2">High</option>
+            <option value="3">Urgent</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+      <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+      <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onForward()">Forward</app-button>
+    </div>
+  </app-modal>
 
 }
