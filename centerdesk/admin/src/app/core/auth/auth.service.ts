@@ -9,8 +9,8 @@ const REFRESH_TOKEN_KEY = 'cd_refresh_token';
 const EXPIRES_AT_KEY = 'cd_expires_at';
 const USER_KEY = 'cd_user';
 
-// Refresh 60 seconds before the access token expires
-const REFRESH_BUFFER_MS = 60_000;
+/** Refresh this far ahead of expiry, so a slow round trip still lands before the token dies. */
+const REFRESH_BUFFER_MS = 5 * 60_000;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

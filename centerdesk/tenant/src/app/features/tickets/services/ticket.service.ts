@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../../core/config/api.config';
 import {
   AddNoteRequest,
   AssignTicketRequest,
+  CategoriseTicketRequest,
   CloseTicketRequest,
   CreateTicketRequest,
   ForwardTicketRequest,
@@ -47,6 +48,7 @@ export class TicketService {
     if (query.priority != null) params = params.set('priority', String(query.priority));
     if (query.assignedTo != null) params = params.set('assignedTo', String(query.assignedTo));
     if (query.emailDeskId != null) params = params.set('emailDeskId', String(query.emailDeskId));
+    if (query.aiState != null) params = params.set('aiState', String(query.aiState));
     return this.http.get<ApiResult<TicketListContent>>(`${this.baseUrl}/api/tickets`, { params });
   }
 
@@ -72,6 +74,14 @@ export class TicketService {
 
   reopen(uid: string, req: ReopenTicketRequest) {
     return this.http.post<ApiResult<Ticket>>(`${this.baseUrl}/api/tickets/${uid}/reopen`, req);
+  }
+
+  // Sets the ticket's service category/sub-category, which (if the sub-category has an
+  // active SLA) also stamps ServiceSlaId + DueDate server-side — see CategoriseAsync.
+  // The response is a TicketDto, not the full TicketDetailDto (no resolutionSummary etc.),
+  // so callers should reload the full detail afterward rather than relying on this alone.
+  categorise(uid: string, req: CategoriseTicketRequest) {
+    return this.http.patch<ApiResult<Ticket>>(`${this.baseUrl}/api/tickets/${uid}/categorise`, req);
   }
 
   getMessages(ticketUid: string) {

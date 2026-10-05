@@ -1,0 +1,26 @@
+<div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+  <div class="flex items-start justify-between">
+    <div
+      class="flex items-center justify-center w-11 h-11 rounded-xl"
+      [class]="iconClasses"
+      [innerHTML]="icon | safeHtml"
+    ></div>
+
+    @if (percent !== undefined) {
+      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-theme-xs font-medium" [class]="pillClasses">
+        {{ percent }}%
+      </span>
+    }
+  </div>
+
+  <div class="mt-4">
+    <span class="text-sm text-gray-500 dark:text-gray-400">{{ label }}</span>
+    <h4 class="mt-1 font-bold text-gray-800 text-title-sm dark:text-white/90">{{ value | number }}</h4>
+
+    @if (percent !== undefined && percentLabel) {
+      <p class="mt-1 text-theme-xs text-gray-400 dark:text-gray-500">{{ percentLabel }}</p>
+    } @else if (hint) {
+      <p class="mt-1 text-theme-xs text-gray-400 dark:text-gray-500">{{ hint }}</p>
+    }
+  </div>
+</div>

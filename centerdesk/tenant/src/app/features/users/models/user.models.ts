@@ -146,9 +146,6 @@ export const PERMISSION_LABELS: Partial<Record<TenantPermission, string>> = {
   [TenantPermission.CanUpdateConfiguration]: 'Update Configuration',
   [TenantPermission.CanManageEmailDesks]: 'Manage Email Desks',
   [TenantPermission.CanManageEmailFilters]: 'Manage Email Filters',
-  // Partners
-  [TenantPermission.CanViewPartners]: 'View Partners',
-  [TenantPermission.CanManagePartners]: 'Manage Partners',
   // Subscription
   [TenantPermission.CanManageSubscription]: 'Manage Subscription',
   [TenantPermission.CanViewBilling]: 'View Billing',
@@ -235,10 +232,6 @@ export const PERMISSION_GROUPS: { label: string; permissions: TenantPermission[]
       TenantPermission.CanViewConfiguration, TenantPermission.CanUpdateConfiguration,
       TenantPermission.CanManageEmailDesks, TenantPermission.CanManageEmailFilters,
     ],
-  },
-  {
-    label: 'Partners',
-    permissions: [TenantPermission.CanViewPartners, TenantPermission.CanManagePartners],
   },
   {
     label: 'Billing',

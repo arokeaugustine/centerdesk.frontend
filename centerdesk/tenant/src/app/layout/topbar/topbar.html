@@ -38,25 +38,6 @@
         </svg>
       </button>
 
-      <!-- Desktop search -->
-      <div class="hidden xl:block">
-        <div class="relative">
-          <span class="absolute -translate-y-1/2 pointer-events-none left-4 top-1/2">
-            <svg class="fill-gray-500 dark:fill-gray-400" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z" fill="" />
-            </svg>
-          </span>
-          <input
-            #searchInput
-            type="text"
-            placeholder="Search or type command..."
-            class="h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
-          />
-          <button class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-            <span>⌘</span><span>K</span>
-          </button>
-        </div>
-      </div>
     </div>
 
     <!-- Right section (actions) -->
@@ -82,6 +63,56 @@
           }
         </button>
 
+        <!-- Notifications -->
+        <div class="relative">
+          <button
+            (click)="toggleNotifications()"
+            class="relative flex items-center justify-center text-gray-500 transition-colors bg-white border border-gray-200 rounded-full hover:text-gray-700 h-11 w-11 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+            aria-label="Notifications"
+          >
+            @if (notifications.unreadCount() > 0) {
+              <span class="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-error-500 text-[10px] font-medium text-white">
+                {{ unreadBadge() }}
+              </span>
+            }
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.25C8.82436 2.25 6.25 4.82436 6.25 8V11.1893L4.46967 12.9697C4.17678 13.2626 4.17678 13.7374 4.46967 14.0303C4.76256 14.3232 5.23744 14.3232 5.53033 14.0303L5.75 13.8107V15C5.75 16.5188 6.98122 17.75 8.5 17.75H9.31824C9.65752 19.2325 10.9922 20.25 12 20.25C13.0078 20.25 14.3425 19.2325 14.6818 17.75H15.5C17.0188 17.75 18.25 16.5188 18.25 15V13.8107L18.4697 14.0303C18.7626 14.3232 19.2374 14.3232 19.5303 14.0303C19.8232 13.7374 19.8232 13.2626 19.5303 12.9697L17.75 11.1893V8C17.75 4.82436 15.1756 2.25 12 2.25ZM7.75 8C7.75 5.65279 9.65279 3.75 12 3.75C14.3472 3.75 16.25 5.65279 16.25 8V15C16.25 15.6904 15.6904 16.25 15 16.25H9C8.30964 16.25 7.75 15.6904 7.75 15V8ZM10.9146 17.75C11.1663 18.3742 11.6482 18.75 12 18.75C12.3518 18.75 12.8337 18.3742 13.0854 17.75H10.9146Z" fill="currentColor"/>
+            </svg>
+          </button>
+
+          @if (isNotificationsOpen()) {
+            <div
+              class="absolute right-0 mt-3 w-[340px] max-h-[420px] overflow-y-auto flex flex-col rounded-2xl border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-800 dark:bg-gray-900"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-800">
+                <span class="block font-medium text-gray-700 text-sm dark:text-gray-300">Notifications</span>
+              </div>
+              @if (notifications.recent().length === 0) {
+                <div class="px-3 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                  Nothing new right now
+                </div>
+              } @else {
+                <ul class="flex flex-col gap-1 pt-2">
+                  @for (item of notifications.recent(); track item.id) {
+                    <li>
+                      <button
+                        (click)="openNotification(item)"
+                        class="flex flex-col w-full gap-0.5 px-3 py-2 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+                      >
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.message }}</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500">{{ timeAgo(item.receivedAt) }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            <!-- Backdrop to close dropdown -->
+            <div class="fixed inset-0 z-[-1]" (click)="isNotificationsOpen.set(false)"></div>
+          }
+        </div>
+
       </div>
 
       <!-- User dropdown -->
@@ -90,10 +121,10 @@
           (click)="toggleUserDropdown()"
           class="flex items-center text-gray-700 dark:text-gray-400"
         >
-          <span class="mr-3 overflow-hidden rounded-full h-11 w-11">
-            <img src="/images/user/owner.png" alt="User" />
-          </span>
-          <span class="hidden mr-1 font-medium text-sm xl:block">{{ user()?.userName }}</span>
+          <!-- The username is shown at every width now. It used to be xl-only, with the avatar
+               standing in below that — with the avatar gone, hiding it too would leave the
+               dropdown as a bare chevron with nothing to read or aim at on small screens. -->
+          <span class="mr-1 max-w-[140px] truncate font-medium text-sm">{{ user()?.userName }}</span>
           <svg
             [ngClass]="{ 'rotate-180': isUserDropdownOpen() }"
             class="transition-transform duration-200 stroke-gray-500 dark:stroke-gray-400"

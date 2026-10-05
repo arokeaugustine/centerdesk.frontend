@@ -1,22 +1,116 @@
-<div class="grid grid-cols-12 gap-4 md:gap-6">
-  <div class="col-span-12 space-y-6 xl:col-span-7">
-    <div><app-ecommerce-metrics /></div>
-    <div><app-monthly-sales-chart /></div>
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      Mail volume, AI resolution and SLA performance for {{ rangeLabel() }}
+    </p>
   </div>
 
-  <div class="col-span-12 xl:col-span-5">
-    <app-monthly-target />
-  </div>
+  <div class="flex flex-wrap items-end gap-3">
+    <div>
+      <label for="dashboard-from" class="mb-1 block text-theme-xs text-gray-500 dark:text-gray-400">Start date</label>
+      <input
+        id="dashboard-from"
+        type="date"
+        [value]="from()"
+        [max]="today"
+        (change)="onFromChange($any($event.target).value)"
+        class="h-10 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+      />
+    </div>
+    <div>
+      <label for="dashboard-to" class="mb-1 block text-theme-xs text-gray-500 dark:text-gray-400">End date</label>
+      <input
+        id="dashboard-to"
+        type="date"
+        [value]="to()"
+        [max]="today"
+        (change)="onToChange($any($event.target).value)"
+        class="h-10 rounded-lg border border-gray-300 bg-white px-3 text-theme-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+      />
+    </div>
 
-  <div class="col-span-12">
-    <app-statics-chart />
+    @if (isLoading()) {
+      <div class="flex h-10 items-center pl-1">
+        <div class="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+      </div>
+    }
   </div>
+</div>
 
-  <div class="col-span-12 xl:col-span-5">
-    <app-demographic-card />
-  </div>
+<!-- The card set is fixed and always rendered: a quiet day is a real answer, and swapping the
+     whole page for a spinner on every date change makes the figures flicker in and out. -->
+<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 md:gap-6" [class.opacity-60]="isLoading()">
+  <app-stat-card
+    label="Mails Received"
+    [value]="summary().totalMailsReceived"
+    [icon]="icons.inbox"
+    tone="brand"
+    hint="Inbound customer mail"
+  />
 
-  <div class="col-span-12 xl:col-span-7">
-    <app-recent-orders />
-  </div>
+  <app-stat-card
+    label="Answered"
+    [value]="summary().totalAnswered"
+    [icon]="icons.reply"
+    tone="success"
+    [percent]="summary().answeredPercent"
+    percentLabel="of mails received"
+  />
+
+  <app-stat-card
+    label="Resolved by AI"
+    [value]="summary().resolvedByAi"
+    [icon]="icons.ai"
+    tone="info"
+    [percent]="summary().resolvedByAiPercent"
+    percentLabel="of all tickets"
+  />
+
+  <app-stat-card
+    label="SLA Violations"
+    [value]="summary().slaViolated"
+    [icon]="icons.violation"
+    tone="error"
+    [percent]="summary().slaViolatedPercent"
+    [percentLabel]="'of ' + summary().slaTrackedTickets + ' SLA-tracked tickets'"
+  />
+
+  <app-stat-card
+    label="Resolved Within SLA"
+    [value]="summary().resolvedWithinSla"
+    [icon]="icons.withinSla"
+    tone="success"
+    [percent]="summary().resolvedWithinSlaPercent"
+    [percentLabel]="'of ' + summary().slaTrackedResolved + ' resolved & SLA-tracked'"
+  />
+
+  <app-stat-card
+    label="Resolved Outside SLA"
+    [value]="summary().resolvedOutsideSla"
+    [icon]="icons.outsideSla"
+    tone="warning"
+    [percent]="summary().resolvedOutsideSlaPercent"
+    [percentLabel]="'of ' + summary().slaTrackedResolved + ' resolved & SLA-tracked'"
+  />
+
+  <app-stat-card
+    label="Total Tickets"
+    [value]="summary().totalTickets"
+    [icon]="icons.inbox"
+    tone="info"
+    hint="Raised in this range"
+  />
+
+  <app-stat-card
+    label="Resolved Tickets"
+    [value]="summary().resolvedTickets"
+    [icon]="icons.withinSla"
+    tone="brand"
+    hint="Closed in this range"
+  />
+</div>
+
+<div class="mt-4 md:mt-6" [class.opacity-60]="isLoading()">
+  <app-traffic-chart [points]="summary().traffic" [interval]="summary().trafficInterval" />
 </div>

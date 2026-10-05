@@ -62,11 +62,11 @@ export enum TenantPermission {
   CanUpdateConfiguration = 0xB1,
   CanManageEmailDesks = 0xB2,
   CanManageEmailFilters = 0xB3,
-  CanViewPartners = 0xC0,
-  CanManagePartners = 0xC1,
   CanManageSubscription = 0xD0,
   CanViewBilling = 0xD1,
   CanManageTenantUsers = 0xD2,
+  CanViewKnowledgeBase = 0xE0,
+  CanManageKnowledgeBase = 0xE1,
 }
 
 export interface User {

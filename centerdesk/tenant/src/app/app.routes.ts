@@ -80,6 +80,26 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/service-categories/service-categories.routes').then(m => m.serviceCategoriesRoutes),
       },
+      {
+        path: 'shifts',
+        loadChildren: () =>
+          import('./features/shifts/shifts.routes').then(m => m.shiftsRoutes),
+      },
+      {
+        path: 'email-filters',
+        loadChildren: () =>
+          import('./features/email-filters/email-filters.routes').then(m => m.emailFiltersRoutes),
+      },
+      {
+        path: 'reports',
+        loadChildren: () =>
+          import('./features/reports/reports.routes').then(m => m.reportsRoutes),
+      },
+      {
+        path: 'knowledge-base',
+        loadChildren: () =>
+          import('./features/knowledge-base/knowledge-base.routes').then(m => m.knowledgeBaseRoutes),
+      },
     ],
   },
 ];

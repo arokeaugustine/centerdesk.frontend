@@ -14,6 +14,19 @@ export enum TicketStatus {
   Returned = 8,
 }
 
+/**
+ * What the AI auto-response pipeline actually did with a ticket. Numeric to match the API,
+ * which serialises enums as ints.
+ *
+ * Distinct from TicketSummary.aiEligible, which is Gate 1 ("is AI allowed to touch this") and
+ * says nothing about whether it ever ran — a ticket can be eligible and still NotAttempted.
+ */
+export enum TicketAiState {
+  NotAttempted = 0,
+  Answered = 1,
+  Declined = 2,
+}
+
 export enum TicketPriority {
   Low = 0,
   Normal = 1,
@@ -82,6 +95,11 @@ export interface TicketEmailDesk {
   isDefault: boolean;
 }
 
+export interface TicketServiceCategoryRef {
+  uid: string;
+  name: string;
+}
+
 export interface TicketSummary {
   uid: string;
   ticketNumber: string;
@@ -97,7 +115,18 @@ export interface TicketSummary {
   createdAt: string;
   assignedTo: TicketUser | null;
   emailDesk: TicketEmailDesk | null;
-  serviceCategory: { uid: string; name: string } | null;
+  serviceCategory: TicketServiceCategoryRef | null;
+  serviceSubCategory: TicketServiceCategoryRef | null;
+  // Gate 1 of the AI auto-response design — true if EITHER the desk this ticket came in on
+  // has aiHandlesAllMail set, OR its own sub-category has aiHandlingEnabled set. Says nothing
+  // about whether AI has actually answered it — aiState below is what reports that.
+  aiEligible: boolean;
+  // What AI actually did with this ticket. On the list, not just the detail view, so an agent
+  // working the queue can see what's already been handled without opening anything.
+  aiState: TicketAiState;
+  aiAttemptedAt: string | null;
+  // Why AI backed off; non-null only when aiState is Declined.
+  aiDeclinedReason: string | null;
 }
 
 export interface TicketListContent {
@@ -132,6 +161,17 @@ export interface Ticket {
   assignedTo: TicketUser | null;
   closedByNavigation: TicketUser | null;
   emailDesk: TicketEmailDesk | null;
+  // Populated by the API's TicketDetailDto/TicketDto (see TicketMapper) once a ticket has
+  // been categorised — null until then.
+  serviceCategory: TicketServiceCategoryRef | null;
+  serviceSubCategory: TicketServiceCategoryRef | null;
+  // See TicketSummary.aiEligible.
+  aiEligible: boolean;
+  // Set once the (not yet implemented) AI drafting pipeline has actually run against this
+  // ticket. aiDeclinedReason is set only when it ran but couldn't confidently answer — a
+  // non-null reason means "AI looked at this and couldn't help, it still needs a human."
+  aiAttemptedAt: string | null;
+  aiDeclinedReason: string | null;
   // Not returned by the ticket-detail endpoint today — optional so the view doesn't crash
   // when it's absent (the API's TicketDetailDto omits it).
   statusHistories?: TicketStatusHistoryEntry[];
@@ -187,12 +227,24 @@ export interface ForwardTicketRequest {
   priority?: TicketPriority | null;
 }
 
+/**
+ * Assigns a ticket's service category/sub-category (PATCH {uid}/categorise). Setting the
+ * sub-category is what makes the ticket eligible for SLA tracking — TicketService.CategoriseAsync
+ * looks up the sub-category's active SLA and, if one exists, stamps ServiceSlaId + DueDate.
+ */
+export interface CategoriseTicketRequest {
+  serviceCategoryUid: string;
+  serviceSubCategoryUid: string;
+}
+
 export interface TicketSearchQuery {
   search?: string;
   status?: TicketStatus | null;
   priority?: TicketPriority | null;
   assignedTo?: number | null;
   emailDeskId?: number | null;
+  /** Narrows to what AI did with the ticket — answered, declined, or never attempted. */
+  aiState?: TicketAiState | null;
   page?: number;
   pageSize?: number;
 }
@@ -214,4 +266,14 @@ export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
   [TicketPriority.Normal]: 'Normal',
   [TicketPriority.High]: 'High',
   [TicketPriority.Urgent]: 'Urgent',
+};
+
+/**
+ * Deliberately phrased from the agent's point of view rather than the pipeline's: what matters
+ * on a queue is whether a ticket still needs a human, not which internal gate it passed.
+ */
+export const TICKET_AI_STATE_LABELS: Record<TicketAiState, string> = {
+  [TicketAiState.NotAttempted]: 'Not handled',
+  [TicketAiState.Answered]: 'AI answered',
+  [TicketAiState.Declined]: 'AI declined',
 };

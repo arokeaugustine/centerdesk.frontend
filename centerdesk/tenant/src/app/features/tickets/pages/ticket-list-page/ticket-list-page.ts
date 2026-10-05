@@ -11,10 +11,12 @@ import { TenantPermission } from '../../../../core/auth/auth.models';
 import { PermissionService } from '../../../../core/auth/permission.service';
 import { ToastService } from '../../../../shared/services/toast.service';
 import {
+  TicketAiState,
   TicketListContent,
   TicketPriority,
   TicketStatus,
   TicketSummary,
+  TICKET_AI_STATE_LABELS,
   TICKET_PRIORITY_LABELS,
   TICKET_STATUS_LABELS,
 } from '../../models/ticket.models';
@@ -45,6 +47,7 @@ export class TicketListPage implements OnInit {
   protected searchTerm = '';
   protected filterStatus = '';
   protected filterPriority = '';
+  protected filterAiState = '';
 
   protected readonly showCreateModal = signal(false);
   protected readonly isSubmitting = signal(false);
@@ -76,6 +79,17 @@ export class TicketListPage implements OnInit {
     { value: String(TicketPriority.Urgent), label: TICKET_PRIORITY_LABELS[TicketPriority.Urgent] },
   ];
 
+  /**
+   * "AI answered" is the one people actually come here for — it sits first so finding what the
+   * bot already dealt with doesn't need the dropdown opened twice.
+   */
+  protected readonly aiStateOptions = [
+    { value: '', label: 'All AI states' },
+    { value: String(TicketAiState.Answered), label: TICKET_AI_STATE_LABELS[TicketAiState.Answered] },
+    { value: String(TicketAiState.Declined), label: TICKET_AI_STATE_LABELS[TicketAiState.Declined] },
+    { value: String(TicketAiState.NotAttempted), label: TICKET_AI_STATE_LABELS[TicketAiState.NotAttempted] },
+  ];
+
   protected readonly createForm = new FormGroup({
     senderName: new FormControl('', [Validators.required]),
     senderEmail: new FormControl('', [Validators.required, Validators.email]),
@@ -96,6 +110,7 @@ export class TicketListPage implements OnInit {
       search: this.searchTerm || undefined,
       status: this.filterStatus !== '' ? (Number(this.filterStatus) as TicketStatus) : undefined,
       priority: this.filterPriority !== '' ? (Number(this.filterPriority) as TicketPriority) : undefined,
+      aiState: this.filterAiState !== '' ? (Number(this.filterAiState) as TicketAiState) : undefined,
     });
   }
 
@@ -146,6 +161,30 @@ export class TicketListPage implements OnInit {
   protected onPriorityChange(event: Event): void {
     this.filterPriority = (event.target as HTMLSelectElement).value;
     this.loadTickets(1);
+  }
+
+  protected onAiStateChange(event: Event): void {
+    this.filterAiState = (event.target as HTMLSelectElement).value;
+    this.loadTickets(1);
+  }
+
+  protected aiStateLabel(state: TicketAiState): string {
+    return TICKET_AI_STATE_LABELS[state];
+  }
+
+  /**
+   * Answered is a positive outcome, declined is a call for attention ("AI looked and couldn't
+   * help"), and never-attempted is unremarkable — so only the first two earn colour.
+   */
+  protected aiStateBadgeClass(state: TicketAiState): string {
+    switch (state) {
+      case TicketAiState.Answered:
+        return 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500';
+      case TicketAiState.Declined:
+        return 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400';
+      default:
+        return 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400';
+    }
   }
 
   protected nextPage(): void {

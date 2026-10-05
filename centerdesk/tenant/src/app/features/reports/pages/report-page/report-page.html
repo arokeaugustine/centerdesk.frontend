@@ -1,0 +1,340 @@
+<div class="p-4 md:p-6">
+
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Reports</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Ticket volume, SLA, team performance and satisfaction for your tenant
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3">
+      <div>
+        <app-label>From</app-label>
+        <input
+          type="date"
+          [value]="from()"
+          [max]="today"
+          (change)="onFromChange($any($event.target).value)"
+          class="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+      <div>
+        <app-label>To</app-label>
+        <input
+          type="date"
+          [value]="to()"
+          [max]="today"
+          (change)="onToChange($any($event.target).value)"
+          class="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
+      @if (canExport()) {
+        <button
+          type="button"
+          (click)="exportActive()"
+          [disabled]="isExporting() || isLoading()"
+          class="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          @if (isExporting()) {
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+            Preparing…
+          } @else {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3V15M12 15L8 11M12 15L16 11M4 17V19C4 20.1 4.9 21 6 21H18C19.1 21 20 20.1 20 19V17"
+                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Download Excel
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Tab strip: each tab is one report, and the Download button above exports whichever is open. -->
+  <div class="mb-6 flex flex-wrap gap-1 border-b border-gray-200 dark:border-gray-800">
+    @for (tab of tabs; track tab.id) {
+      <button
+        type="button"
+        (click)="selectTab(tab.id)"
+        class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition"
+        [class]="tab.id === activeTab()
+          ? 'border-brand-500 text-brand-500'
+          : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'"
+      >
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-24">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+    </div>
+  } @else {
+
+    @switch (activeTab()) {
+
+      @case ('overview') {
+        @if (report(); as data) {
+          <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">Total Tickets</p>
+              <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ data.totalTickets | number }}</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">Open</p>
+              <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ data.openTickets | number }}</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">Closed</p>
+              <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ data.closedTickets | number }}</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">SLA Breached</p>
+              <p class="mt-1 text-2xl font-semibold text-error-500">{{ data.slaBreachedCount | number }}</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">Avg. Resolution</p>
+              <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ data.averageResolutionHours }}h</p>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+            <p class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Tickets by Status</p>
+            @if (data.byStatus.length === 0) {
+              <p class="py-10 text-center text-sm text-gray-400">No tickets in this range</p>
+            } @else {
+              <apx-chart
+                [series]="series()" [chart]="chart" [xaxis]="xaxis" [plotOptions]="plotOptions"
+                [dataLabels]="dataLabels" [stroke]="stroke" [grid]="grid" [fill]="fill" [colors]="colors"
+              ></apx-chart>
+            }
+          </div>
+        }
+      }
+
+      @case ('tickets') {
+        @if (tickets().length === 0) {
+          <p class="py-16 text-center text-sm text-gray-400">No tickets in this range</p>
+        } @else {
+          <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table class="w-full min-w-[1100px] text-left text-sm">
+              <thead class="border-b border-gray-200 dark:border-gray-800">
+                <tr class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 font-medium">Ticket</th>
+                  <th class="px-4 py-3 font-medium">Sender</th>
+                  <th class="px-4 py-3 font-medium">Subject</th>
+                  <th class="px-4 py-3 font-medium">Status</th>
+                  <th class="px-4 py-3 font-medium">Assigned</th>
+                  <th class="px-4 py-3 font-medium">SLA</th>
+                  <th class="px-4 py-3 font-medium">Hours</th>
+                  <th class="px-4 py-3 font-medium">AI</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of tickets(); track row.ticketNumber) {
+                  <tr class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.ticketNumber }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.senderName || row.senderEmail }}</td>
+                    <td class="max-w-xs truncate px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.subject }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.status }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.assignedTo || '—' }}</td>
+                    <td class="px-4 py-3">
+                      <span
+                        class="rounded-full px-2 py-0.5 text-xs font-medium"
+                        [class]="row.slaOutcome === 'Within SLA'
+                          ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                          : row.slaOutcome === 'Outside SLA' || row.slaOutcome === 'Open - overdue'
+                            ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'
+                            : 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-300'"
+                      >{{ row.slaOutcome }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      {{ row.resolutionHours !== null ? row.resolutionHours : '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.answeredByAi ? 'Yes' : '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @case ('agents') {
+        @if (agents().length === 0) {
+          <p class="py-16 text-center text-sm text-gray-400">No assigned tickets in this range</p>
+        } @else {
+          <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table class="w-full min-w-[800px] text-left text-sm">
+              <thead class="border-b border-gray-200 dark:border-gray-800">
+                <tr class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 font-medium">Agent</th>
+                  <th class="px-4 py-3 font-medium">Total</th>
+                  <th class="px-4 py-3 font-medium">Closed in SLA</th>
+                  <th class="px-4 py-3 font-medium">Closed late</th>
+                  <th class="px-4 py-3 font-medium">Open on track</th>
+                  <th class="px-4 py-3 font-medium">Open overdue</th>
+                  <th class="px-4 py-3 font-medium">Not tracked</th>
+                  <th class="px-4 py-3 font-medium">Compliance</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of agents(); track row.email) {
+                  <tr class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.agent }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.totalTickets | number }}</td>
+                    <td class="px-4 py-3 text-success-600 dark:text-success-500">{{ row.closedWithinSla | number }}</td>
+                    <td class="px-4 py-3 text-error-500">{{ row.closedOutsideSla | number }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.openWithinSla | number }}</td>
+                    <td class="px-4 py-3 text-error-500">{{ row.openOutsideSla | number }}</td>
+                    <td class="px-4 py-3 text-gray-400">{{ row.notTracked | number }}</td>
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.compliancePercent }}%</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @case ('teams') {
+        @if (teams().length === 0) {
+          <p class="py-16 text-center text-sm text-gray-400">No sub-tickets forwarded in this range</p>
+        } @else {
+          <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table class="w-full min-w-[850px] text-left text-sm">
+              <thead class="border-b border-gray-200 dark:border-gray-800">
+                <tr class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 font-medium">Team</th>
+                  <th class="px-4 py-3 font-medium">Member</th>
+                  <th class="px-4 py-3 font-medium">Sub-tickets</th>
+                  <th class="px-4 py-3 font-medium">Closed</th>
+                  <th class="px-4 py-3 font-medium">Open</th>
+                  <th class="px-4 py-3 font-medium">In SLA</th>
+                  <th class="px-4 py-3 font-medium">Late</th>
+                  <th class="px-4 py-3 font-medium">Avg hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of teams(); track row.team + row.member) {
+                  <tr class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                      {{ row.team }}
+                      @if (row.parentTeam) {
+                        <span class="block text-xs text-gray-400">under {{ row.parentTeam }}</span>
+                      }
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.member }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.subTickets | number }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.closed | number }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.open | number }}</td>
+                    <td class="px-4 py-3 text-success-600 dark:text-success-500">{{ row.closedWithinSla | number }}</td>
+                    <td class="px-4 py-3 text-error-500">{{ row.closedOutsideSla | number }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.averageResolutionHours }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @case ('interactions') {
+        <div class="mb-4 flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-800 dark:bg-white/[0.03]">
+          @for (item of dimensions; track item) {
+            <button
+              type="button"
+              (click)="selectDimension(item)"
+              class="rounded-md px-3 py-1.5 text-sm font-medium transition"
+              [class]="item === dimension()
+                ? 'bg-brand-500 text-white'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'"
+            >
+              {{ item }}
+            </button>
+          }
+        </div>
+
+        @if (interactions().length === 0) {
+          <p class="py-16 text-center text-sm text-gray-400">No tickets in this range</p>
+        } @else {
+          <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table class="w-full text-left text-sm">
+              <thead class="border-b border-gray-200 dark:border-gray-800">
+                <tr class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 font-medium">{{ dimension() }}</th>
+                  <th class="px-4 py-3 font-medium">Tickets</th>
+                  <th class="px-4 py-3 font-medium">Share</th>
+                  <th class="w-1/3 px-4 py-3 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of interactions(); track row.item) {
+                  <tr class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.item }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.frequency | number }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.percentage }}%</td>
+                    <td class="px-4 py-3">
+                      <!-- Inline bar: the share column is the point of this report, so it reads
+                           faster as a length than as a number. -->
+                      <div class="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div class="h-2 rounded-full bg-brand-500" [style.width.%]="row.percentage"></div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @case ('csat') {
+        @if (csat().length === 0) {
+          <p class="py-16 text-center text-sm text-gray-400">No satisfaction responses in this range</p>
+        } @else {
+          <div class="mb-4 flex flex-wrap gap-4">
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">Average rating</p>
+              <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">
+                {{ averageRating() | number: '1.1-1' }} / 5
+              </p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-xs text-gray-500 dark:text-gray-400">Responses</p>
+              <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ csat().length | number }}</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table class="w-full min-w-[800px] text-left text-sm">
+              <thead class="border-b border-gray-200 dark:border-gray-800">
+                <tr class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 font-medium">Ticket</th>
+                  <th class="px-4 py-3 font-medium">Customer</th>
+                  <th class="px-4 py-3 font-medium">Rating</th>
+                  <th class="px-4 py-3 font-medium">Remark</th>
+                  <th class="px-4 py-3 font-medium">Closed by</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of csat(); track row.ticketNumber) {
+                  <tr class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.ticketNumber }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.senderName || row.senderEmail }}</td>
+                    <td class="px-4 py-3 text-warning-500">{{ row.rating }} / 5</td>
+                    <td class="max-w-xs truncate px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.remark || '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.closedBy || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    }
+  }
+</div>
