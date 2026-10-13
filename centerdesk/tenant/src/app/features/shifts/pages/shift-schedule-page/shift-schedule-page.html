@@ -1,0 +1,183 @@
+<div class="p-4 md:p-6">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <button (click)="goBack()" class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-2">
+        ← Back to Shifts
+      </button>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Shift Schedule</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Assign agents to shifts by date. Tickets auto-assign to whoever is scheduled and on duty.</p>
+    </div>
+    @if (canUpload()) {
+      <app-button size="sm" variant="outline" (btnClick)="openBulkUpload()">Bulk Upload</app-button>
+    }
+  </div>
+
+  @if (current().length > 0) {
+    <div class="mb-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">On Duty Right Now</p>
+      <div class="flex flex-wrap gap-4">
+        @for (info of current(); track info.shift.uid) {
+          <div class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2">
+            <app-badge color="success" size="sm">{{ info.shift.name }}</app-badge>
+            <span class="text-sm text-gray-700 dark:text-gray-300">
+              {{ info.usersOnShift.length === 0 ? 'No one scheduled' : (info.usersOnShift.length + ' scheduled') }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+        <div>
+          <app-label>Date</app-label>
+          <input
+            type="date"
+            [value]="selectedDate()"
+            (change)="onDateChange($any($event.target).value)"
+            class="h-10 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+          />
+        </div>
+      </div>
+
+      @if (isLoading()) {
+        <div class="flex items-center justify-center py-16">
+          <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+        </div>
+      } @else if (activeShifts().length === 0) {
+        <div class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-600">
+          <p class="text-sm font-medium">No active shifts to schedule</p>
+        </div>
+      } @else {
+        <div class="divide-y divide-gray-200 dark:divide-gray-800">
+          @for (shift of activeShifts(); track shift.uid) {
+            <div class="px-4 py-4">
+              <p class="font-medium text-gray-900 dark:text-white mb-2">{{ shift.name }} <span class="text-xs font-normal text-gray-400">({{ shift.code }})</span></p>
+              @if ((assignmentsByShift().get(shift.uid) ?? []).length === 0) {
+                <p class="text-xs text-gray-400 dark:text-gray-500">No one scheduled for this date</p>
+              } @else {
+                <div class="flex flex-wrap gap-2">
+                  @for (a of assignmentsByShift().get(shift.uid); track a.uid) {
+                    <span class="inline-flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs text-gray-700 dark:text-gray-300">
+                      {{ a.userFirstName }} {{ a.userLastName }}
+                      @if (canManageSchedules()) {
+                        <button (click)="onRemove(a)" class="text-gray-400 hover:text-error-500 transition-colors" title="Remove">✕</button>
+                      }
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (canManageSchedules()) {
+      <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Assign Agent</h2>
+        @if (formError()) {
+          <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ formError() }}</div>
+        }
+        <form [formGroup]="assignForm" (ngSubmit)="onAssign()" class="space-y-4">
+          <div>
+            <app-label>Shift <span class="text-error-500">*</span></app-label>
+            <select
+              formControlName="shiftUid"
+              class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+            >
+              <option value="" disabled>Select a shift</option>
+              @for (shift of activeShifts(); track shift.uid) {
+                <option [value]="shift.uid">{{ shift.name }} ({{ shift.code }})</option>
+              }
+            </select>
+          </div>
+          <div>
+            <app-label>Agent <span class="text-error-500">*</span></app-label>
+            <select
+              formControlName="userUid"
+              class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+            >
+              <option value="" disabled>Select an agent</option>
+              @for (user of users(); track user.uid) {
+                <option [value]="user.uid">{{ user.firstName }} {{ user.lastName }}</option>
+              }
+            </select>
+          </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500">Assigning for {{ selectedDate() }}.</p>
+          <app-button type="submit" size="sm" className="w-full" [loading]="isSubmitting()">Assign to Shift</app-button>
+        </form>
+      </div>
+    } @else if (canUpload()) {
+      <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-600">
+        <p class="text-sm font-medium">Bulk upload only</p>
+        <p class="text-xs mt-1">You can schedule agents via CSV upload, but not one at a time. Use the "Bulk Upload" button above.</p>
+      </div>
+    }
+  </div>
+</div>
+
+<app-modal [isOpen]="showBulkUploadModal()" (close)="closeBulkUpload()">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Bulk Upload Shift Schedule</h2>
+  </div>
+  <div class="px-6 py-5 max-h-[70vh] overflow-y-auto space-y-4">
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Upload a CSV with three columns: <span class="font-mono text-xs">ShiftCode</span>,
+      <span class="font-mono text-xs">UserEmail</span>, <span class="font-mono text-xs">Date</span>
+      (yyyy-MM-dd) — one row per assignment. A header row is optional.
+    </p>
+    <button (click)="downloadTemplate()" class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
+      Download CSV template →
+    </button>
+
+    <div>
+      <app-label>CSV File</app-label>
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        (change)="onFileSelected($event)"
+        class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-600 hover:file:bg-brand-100 dark:file:bg-white/5 dark:file:text-brand-400"
+      />
+    </div>
+
+    @if (uploadError()) {
+      <div class="rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ uploadError() }}</div>
+    }
+
+    @if (uploadResult()) {
+      <div class="rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-600 dark:text-gray-300 flex items-center justify-between">
+          <span>{{ uploadResult()!.totalRows }} row(s) processed</span>
+          <span>
+            <span class="text-success-600 dark:text-success-400 font-medium">{{ uploadResult()!.successCount }} succeeded</span>
+            @if (uploadResult()!.failureCount > 0) {
+              <span class="text-error-600 dark:text-error-400 font-medium ml-2">{{ uploadResult()!.failureCount }} failed</span>
+            }
+          </span>
+        </div>
+        <div class="max-h-[220px] overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+          @for (row of uploadResult()!.rows; track row.rowNumber) {
+            <div class="px-4 py-2 text-xs flex items-center justify-between gap-3">
+              <span class="text-gray-500 dark:text-gray-400">
+                Row {{ row.rowNumber }} — {{ row.shiftCode }} / {{ row.userEmail }} / {{ row.date }}
+              </span>
+              @if (row.success) {
+                <span class="text-success-600 dark:text-success-400 font-medium shrink-0">OK</span>
+              } @else {
+                <span class="text-error-600 dark:text-error-400 shrink-0" [title]="row.error ?? ''">{{ row.error }}</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+  <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+    <button (click)="closeBulkUpload()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Close</button>
+    <app-button size="sm" [loading]="isUploading()" [disabled]="!selectedFile()" (btnClick)="onBulkUpload()">Upload</app-button>
+  </div>
+</app-modal>

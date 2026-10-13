@@ -1,17 +1,9 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { AdminPermission } from './auth.models';
 import { AuthService } from './auth.service';
+import { decodeJwtPayload } from './jwt';
 
 const PACK_TAG = 'H4-';
-
-function decodeJwtPayload(token: string): Record<string, unknown> {
-  try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-  } catch {
-    return {};
-  }
-}
 
 function unpackPermissions(packed: string): Set<AdminPermission> {
   const set = new Set<AdminPermission>();

@@ -48,6 +48,7 @@ export class EmailDeskPage implements OnInit {
     smtpUseTls: new FormControl(true),
     smtpUsername: new FormControl('', [Validators.required]),
     smtpPassword: new FormControl(''),
+    aiHandlesAllMail: new FormControl<boolean>(false, { nonNullable: true }),
   });
 
   ngOnInit(): void {
@@ -76,6 +77,7 @@ export class EmailDeskPage implements OnInit {
       name: '', emailAddress: '', isDefault: false, isActive: true,
       imapHost: '', imapPort: '993', imapUseSsl: true, imapUsername: '', imapPassword: '',
       smtpHost: '', smtpPort: '587', smtpUseTls: true, smtpUsername: '', smtpPassword: '',
+      aiHandlesAllMail: false,
     });
     this.form.controls.emailAddress.enable();
     this.form.controls.imapPassword.setValidators([Validators.required]);
@@ -103,6 +105,7 @@ export class EmailDeskPage implements OnInit {
       smtpUseTls: desk.smtpUseTls,
       smtpUsername: desk.smtpUsername,
       smtpPassword: '',
+      aiHandlesAllMail: desk.aiHandlesAllMail,
     });
     this.form.controls.emailAddress.disable();
     this.form.controls.imapPassword.clearValidators();
@@ -147,6 +150,7 @@ export class EmailDeskPage implements OnInit {
       smtpUseTls: v.smtpUseTls ?? true,
       smtpUsername: v.smtpUsername!,
       smtpPassword: v.smtpPassword!,
+      aiHandlesAllMail: v.aiHandlesAllMail,
     }).subscribe({
       next: (res) => {
         if (res.success) {
@@ -186,6 +190,7 @@ export class EmailDeskPage implements OnInit {
       smtpUseTls: v.smtpUseTls,
       smtpUsername: v.smtpUsername || null,
       smtpPassword: v.smtpPassword || null,
+      aiHandlesAllMail: v.aiHandlesAllMail,
     }).subscribe({
       next: (res) => {
         if (res.success) {

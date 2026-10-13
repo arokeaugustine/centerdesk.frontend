@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { BillingService } from '../../services/billing.service';
-import { VerifyResult } from '../../models/billing.models';
+import { BillingCurrency, VerifyResult } from '../../models/billing.models';
 
 @Component({
   selector: 'app-payment-callback',
@@ -9,6 +9,8 @@ import { VerifyResult } from '../../models/billing.models';
   templateUrl: './payment-callback.html',
 })
 export class PaymentCallback implements OnInit {
+  // Bachs appends ?checkout_id=chk_… when it sends the customer back; ?reference= still works.
+  @Input('checkout_id') checkoutId?: string;
   @Input() reference?: string;
 
   private readonly billingService = inject(BillingService);
@@ -20,13 +22,13 @@ export class PaymentCallback implements OnInit {
   readonly errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
-    if (!this.reference) {
-      this.errorMessage.set('No payment reference found. Please contact support.');
+    if (!this.checkoutId && !this.reference) {
+      this.errorMessage.set('No payment reference found. If you completed a payment, check your billing page or contact support.');
       this.isVerifying.set(false);
       return;
     }
 
-    this.billingService.verifyPayment(this.reference).subscribe({
+    this.billingService.verifyPayment({ checkoutId: this.checkoutId, reference: this.reference }).subscribe({
       next: (res) => {
         if (res.success && res.content?.status === 'paid') {
           this.verifyResult.set(res.content);
@@ -45,10 +47,10 @@ export class PaymentCallback implements OnInit {
     });
   }
 
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-NG', {
+  formatCurrency(amount: number, currency: BillingCurrency = 'NGN'): string {
+    return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'en-NG', {
       style: 'currency',
-      currency: 'NGN',
+      currency,
       minimumFractionDigits: 0,
     }).format(amount);
   }

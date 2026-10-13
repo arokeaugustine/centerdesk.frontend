@@ -15,6 +15,11 @@ export interface EmailDesk {
   smtpUsername: string;
   createdAt: string;
   lastSyncedAt: string | null;
+  // Tenant-level override of the AI auto-response policy gate: when true, every ticket that
+  // comes in through this desk is AI-eligible regardless of its sub-category's own
+  // aiHandlingEnabled flag — for tenants who'd rather not configure eligibility category by
+  // category and just want "AI handles all my mail" for this mailbox.
+  aiHandlesAllMail: boolean;
 }
 
 export interface CreateEmailDeskRequest {
@@ -31,6 +36,7 @@ export interface CreateEmailDeskRequest {
   smtpUseTls: boolean;
   smtpUsername: string;
   smtpPassword: string;
+  aiHandlesAllMail: boolean;
 }
 
 export interface UpdateEmailDeskRequest {
@@ -47,6 +53,7 @@ export interface UpdateEmailDeskRequest {
   smtpUseTls?: boolean | null;
   smtpUsername?: string | null;
   smtpPassword?: string | null;
+  aiHandlesAllMail?: boolean | null;
 }
 
 export interface TestConnectionResult {

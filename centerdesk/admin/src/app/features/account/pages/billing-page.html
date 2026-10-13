@@ -1,0 +1,237 @@
+<div class="flex flex-col gap-1">
+  <h1 class="text-2xl font-semibold tracking-[-0.02em] text-gray-900 sm:text-3xl dark:text-white">Subscription &amp; billing</h1>
+  <p class="text-sm text-gray-500 dark:text-gray-400">Your plan, payments and renewals. Payments are processed securely by Bachs.</p>
+</div>
+
+@if (state.loading()) {
+  <div class="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+    <div class="h-64 animate-pulse rounded-2xl bg-white ring-1 ring-gray-200 dark:bg-white/[0.03] dark:ring-white/10"></div>
+    <div class="h-64 animate-pulse rounded-2xl bg-white ring-1 ring-gray-200 dark:bg-white/[0.03] dark:ring-white/10"></div>
+  </div>
+} @else if (sub(); as s) {
+  @if (actionError()) {
+    <div class="mt-6 flex gap-3 rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400" role="alert">
+      <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-.9 4h1.8v5H9.1V6Zm0 6.5h1.8v1.8H9.1v-1.8Z"/></svg>
+      <span>{{ actionError() }}</span>
+    </div>
+  }
+
+  <div class="mt-8 grid gap-6" [ngClass]="isPaid() ? 'lg:grid-cols-[1.4fr_1fr]' : ''">
+    <!-- Current plan -->
+    <section class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-7 dark:border-white/10 dark:bg-white/[0.03]">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Current plan</p>
+          <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{{ isTrial() ? 'Free trial' : s.plan.name }}</p>
+          @if (!isTrial()) {
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ currentPrice(s) }} · paid in {{ s.currency === 'USD' ? 'US dollars' : 'naira' }}</p>
+          }
+        </div>
+        <span class="rounded-full px-2.5 py-1 text-xs font-medium" [ngClass]="statusTone(s)">{{ statusLabel(s) }}</span>
+      </div>
+
+      <p class="mt-5 text-sm leading-6 text-gray-600 dark:text-gray-300">{{ summary(s) }}</p>
+
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        @if (canRenew()) {
+          <button type="button" (click)="renew()" [disabled]="renewing()"
+                  class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-60">
+            {{ renewing() ? 'Opening checkout…' : 'Renew now' }}
+          </button>
+        }
+        @if (isCancelled()) {
+          <button type="button" (click)="resume()" [disabled]="working()"
+                  class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-60">
+            Keep my subscription
+          </button>
+        }
+        @if (canCancel()) {
+          <button type="button" (click)="openCancel()"
+                  class="rounded-lg px-1 py-2 text-sm font-medium text-gray-500 underline-offset-4 hover:text-error-600 hover:underline dark:text-gray-400 dark:hover:text-error-400">
+            Cancel subscription
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Payment method -->
+    @if (isPaid()) {
+      <section class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-7 dark:border-white/10 dark:bg-white/[0.03]">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Payment method</p>
+        @if (s.paymentMethod; as card) {
+          <div class="mt-4 flex items-center gap-4">
+            <span class="flex h-11 w-16 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-950 text-[11px] font-semibold uppercase tracking-wide text-white">{{ card.brand || 'Card' }}</span>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white">{{ cardLabel(card) }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                @if (cardExpiry(card)) { Expires {{ cardExpiry(card) }} · } {{ card.currency === 'USD' ? 'Dollar' : 'Naira' }} card
+              </p>
+            </div>
+          </div>
+          <button type="button" (click)="removeCard(card)" [disabled]="working()"
+                  class="mt-4 text-sm font-medium text-gray-500 hover:text-error-600 disabled:opacity-60 dark:text-gray-400 dark:hover:text-error-400">Remove card</button>
+        } @else {
+          <p class="mt-4 text-sm leading-6 text-gray-600 dark:text-gray-300">No card saved. Paying by card at your next checkout saves it, so renewals happen automatically.</p>
+        }
+
+        @if (s.status === 1 && !s.cancelledAt) {
+          <div class="mt-6 flex items-start justify-between gap-4 border-t border-gray-100 pt-5 dark:border-white/[0.06]">
+            <div>
+              <p class="text-sm font-medium text-gray-900 dark:text-white">Renew automatically</p>
+              <p class="mt-0.5 text-xs leading-5 text-gray-500 dark:text-gray-400">Charge the saved card when the period ends.</p>
+            </div>
+            <button type="button" role="switch" [attr.aria-checked]="s.autoRenew" (click)="toggleAutoRenew(s)" [disabled]="working()"
+                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60"
+                    [ngClass]="s.autoRenew ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'"
+                    aria-label="Renew automatically">
+              <span class="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform" [ngClass]="s.autoRenew ? 'translate-x-5' : 'translate-x-0.5'"></span>
+            </button>
+          </div>
+        }
+      </section>
+    }
+  </div>
+
+  <!-- Plans (trial) -->
+  @if (isTrial()) {
+    <section class="mt-10">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Choose your plan</h2>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pick monthly or yearly and naira or dollars at checkout. Everything in your workspace stays exactly as it is.</p>
+      <div class="mt-6 grid gap-6 lg:grid-cols-3">
+        @for (plan of state.sortedPlans(); track plan.id; let i = $index) {
+          <div class="relative flex flex-col rounded-2xl border bg-white p-6 dark:bg-white/[0.03]"
+               [ngClass]="i === 1 ? 'border-brand-500 ring-1 ring-brand-500 dark:border-brand-400' : 'border-gray-200 dark:border-white/10'">
+            @if (i === 1) { <span class="absolute -top-3 left-6 rounded-full bg-brand-500 px-3 py-1 text-xs font-medium text-white">Recommended</span> }
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ plan.name }}</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ plan.description }}</p>
+            <p class="mt-5 flex items-baseline gap-1">
+              <span class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{{ money(plan.monthlyPriceNaira, 'NGN') }}</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">/month</span>
+            </p>
+            @if (plan.monthlyPriceUsd != null) {
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">or {{ money(plan.monthlyPriceUsd, 'USD') }}/month in dollars</p>
+            }
+            <ul class="mt-6 flex-1 space-y-2.5 text-sm">
+              @for (f of features(plan); track f) {
+                <li class="flex gap-2.5 text-gray-600 dark:text-gray-300">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="m4.5 10.5 3.5 3.5 7.5-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  {{ f }}
+                </li>
+              }
+            </ul>
+            <button type="button" (click)="openCheckout(plan)"
+                    class="mt-6 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                    [ngClass]="i === 1 ? 'bg-brand-500 text-white hover:bg-brand-600' : 'border border-gray-300 text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5'">
+              Choose {{ plan.name }}
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (isPaid() && !isTrial()) {
+    <p class="mt-8 text-sm text-gray-500 dark:text-gray-400">
+      Want a different plan? Email us at <a [href]="'mailto:' + contactEmail" class="font-medium text-brand-500 hover:text-brand-600">{{ contactEmail }}</a> and we’ll switch it for you.
+    </p>
+  }
+}
+
+<!-- Checkout options -->
+<app-site-dialog [open]="!!checkoutPlan()" [busy]="redirecting()" (closed)="closeCheckout()" label="Choose how to pay" [width]="480">
+  @if (checkoutPlan(); as plan) {
+    <div class="p-6 sm:p-7">
+      <h2 class="pr-10 text-lg font-semibold text-gray-900 dark:text-white">{{ plan.name }} plan</h2>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Choose how often to pay and in which currency.</p>
+
+      <p class="mt-6 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Billing period</p>
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        @for (c of ['Monthly', 'Annual']; track c) {
+          <button type="button" (click)="cycle.set($any(c))"
+                  class="rounded-xl border px-4 py-3 text-left transition-colors"
+                  [ngClass]="cycle() === c ? 'border-brand-500 bg-brand-25 ring-1 ring-brand-500 dark:bg-brand-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10'">
+            <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ c === 'Monthly' ? 'Monthly' : 'Yearly' }}</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ c === 'Monthly' ? 'Pay as you go' : '2 months free' }}</span>
+          </button>
+        }
+      </div>
+
+      <p class="mt-5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Currency</p>
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" (click)="currency.set('NGN')"
+                class="rounded-xl border px-4 py-3 text-left transition-colors"
+                [ngClass]="currency() === 'NGN' ? 'border-brand-500 bg-brand-25 ring-1 ring-brand-500 dark:bg-brand-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10'">
+          <span class="block text-sm font-medium text-gray-900 dark:text-white">₦ Naira</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">Card or bank transfer</span>
+        </button>
+        <button type="button" (click)="supportsUsd(plan) && currency.set('USD')" [disabled]="!supportsUsd(plan)"
+                class="rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                [ngClass]="currency() === 'USD' ? 'border-brand-500 bg-brand-25 ring-1 ring-brand-500 dark:bg-brand-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10'">
+          <span class="block text-sm font-medium text-gray-900 dark:text-white">$ US dollars</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">{{ supportsUsd(plan) ? 'Card' : 'Not available for this plan' }}</span>
+        </button>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3.5 dark:bg-white/[0.04]">
+        <span class="text-sm text-gray-600 dark:text-gray-300">Due today</span>
+        <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ money(priceOf(plan, cycle(), currency()), currency()) }}</span>
+      </div>
+      <p class="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
+        Your currency is kept for renewals. Paying by card saves it so your plan renews automatically — you can turn that off any time.
+      </p>
+
+      @if (checkoutError()) {
+        <p class="mt-4 rounded-lg bg-error-50 px-3 py-2 text-sm text-error-700 dark:bg-error-500/10 dark:text-error-400">{{ checkoutError() }}</p>
+      }
+
+      <button type="button" (click)="continueToPayment()" [disabled]="redirecting()"
+              class="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-brand-500 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-wait disabled:opacity-70">
+        @if (redirecting()) {
+          <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          Taking you to checkout…
+        } @else {
+          Continue to payment
+        }
+      </button>
+    </div>
+  }
+</app-site-dialog>
+
+<!-- Cancel -->
+<app-site-dialog [open]="cancelOpen()" [busy]="cancelling()" (closed)="cancelOpen.set(false)" label="Cancel subscription" [width]="500">
+  @if (sub(); as s) {
+    <div class="p-6 sm:p-7">
+      <h2 class="pr-10 text-lg font-semibold text-gray-900 dark:text-white">Cancel your subscription?</h2>
+      <p class="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+        Nothing more will be charged. Your workspace keeps working until <strong class="font-medium text-gray-900 dark:text-white">{{ date(s.renewalDate) }}</strong>,
+        then stops taking in new email. You can change your mind before then.
+      </p>
+
+      <p class="mt-6 text-sm font-medium text-gray-900 dark:text-white">Mind telling us why?</p>
+      <div class="mt-3 space-y-2">
+        @for (r of cancelReasons; track r) {
+          <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors"
+                 [ngClass]="cancelReason() === r ? 'border-brand-500 bg-brand-25 dark:bg-brand-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10'">
+            <input type="radio" name="cancel-reason" [value]="r" [checked]="cancelReason() === r" (change)="cancelReason.set(r)" class="h-4 w-4 accent-brand-500" />
+            <span class="text-gray-700 dark:text-gray-300">{{ r }}</span>
+          </label>
+        }
+      </div>
+      <textarea rows="3" [ngModel]="cancelNote()" (ngModelChange)="cancelNote.set($event)" maxlength="400" placeholder="Anything else we should know? (optional)"
+                class="mt-3 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white/90"></textarea>
+
+      @if (cancelError()) {
+        <p class="mt-3 rounded-lg bg-error-50 px-3 py-2 text-sm text-error-700 dark:bg-error-500/10 dark:text-error-400">{{ cancelError() }}</p>
+      }
+
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button type="button" (click)="cancelOpen.set(false)" [disabled]="cancelling()"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Keep my plan</button>
+        <button type="button" (click)="confirmCancel()" [disabled]="cancelling()"
+                class="rounded-lg bg-error-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-error-600 disabled:opacity-60">
+          {{ cancelling() ? 'Cancelling…' : 'Cancel subscription' }}
+        </button>
+      </div>
+    </div>
+  }
+</app-site-dialog>

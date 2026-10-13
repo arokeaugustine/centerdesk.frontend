@@ -39,14 +39,48 @@
                 Closed
               </span>
             }
+            @if (t.serviceSubCategory) {
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400">
+                {{ t.serviceCategory?.name }} / {{ t.serviceSubCategory.name }}
+              </span>
+            }
+            @if (t.aiEligible) {
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400"
+                title="Eligible for an AI-drafted reply (Gate 1 passed) — not yet a guarantee AI can actually answer it"
+              >AI-eligible</span>
+            }
+            @if (t.whatsAppChannel) {
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500">WhatsApp</span>
+            }
           </div>
           <h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ t.subject }}</h1>
           <p class="text-sm text-gray-500 dark:text-gray-400">
             From
             <span class="font-medium text-gray-700 dark:text-gray-300">{{ t.senderName }}</span>
-            &lt;{{ t.senderEmail }}&gt;
+            @if (t.whatsAppChannel) {
+              +{{ t.senderPhone }} via WhatsApp ({{ t.whatsAppChannel.name }})
+            } @else {
+              &lt;{{ t.senderEmail }}&gt;
+            }
           </p>
         </div>
+
+        <!-- AI couldn't confidently answer -->
+        @if (t.aiDeclinedReason) {
+          <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-2xl px-6 py-4 flex items-start gap-3">
+            <svg class="h-5 w-5 text-amber-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none">
+              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-amber-800 dark:text-amber-400">AI couldn't confidently answer this ticket</p>
+              <p class="text-xs text-amber-700 dark:text-amber-500 mt-0.5">{{ t.aiDeclinedReason }}</p>
+              @if (t.aiAttemptedAt) {
+                <p class="text-xs text-amber-600/80 dark:text-amber-600/80 mt-1">Attempted {{ formatDate(t.aiAttemptedAt) }} — this ticket needs a human reply.</p>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Conversation thread -->
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
@@ -101,6 +135,9 @@
                         } @else {
                           <span class="text-xs px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">Outbound</span>
                         }
+                        @if (msg.channel === 'WhatsApp') {
+                          <span class="text-xs px-1.5 py-0.5 rounded bg-success-50 dark:bg-success-500/15 text-success-700 dark:text-success-500">WhatsApp</span>
+                        }
                         <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatDate(msg.createdAt) }}</span>
                       </div>
                     </div>
@@ -108,7 +145,7 @@
                     @if (msg.cc) {
                       <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">Cc: {{ msg.cc }}</p>
                     }
-                    @if (msg.subject) {
+                    @if (msg.subject && msg.channel !== 'WhatsApp') {
                       <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ msg.subject }}</p>
                     }
 
@@ -116,41 +153,11 @@
                       <!-- Rendered as HTML so links and formatting are preserved. Angular's
                            built-in sanitizer strips scripts/event handlers from untrusted mail. -->
                       <div class="cd-message-html mt-1 break-words text-sm leading-relaxed text-gray-800 dark:text-gray-200" [innerHTML]="msg.body"></div>
-                    } @else {
+                    } @else if (msg.attachments.length === 0) {
                       <p class="text-sm italic text-gray-400 dark:text-gray-500">(No message content)</p>
                     }
 
-                    @if (msg.attachments.length > 0) {
-                      <div class="mt-3">
-                        <button
-                          type="button"
-                          (click)="toggleAttachments(msg.uid)"
-                          class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                          </svg>
-                          {{ msg.attachments.length }} {{ msg.attachments.length === 1 ? 'attachment' : 'attachments' }}
-                          <svg class="h-3.5 w-3.5 transition-transform" [class.rotate-180]="attachmentsShown(msg.uid)" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                        </button>
-
-                        @if (attachmentsShown(msg.uid)) {
-                          <div class="mt-2 flex flex-wrap gap-2">
-                            @for (att of msg.attachments; track att.uid) {
-                              <span class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400">
-                                <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
-                                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                </svg>
-                                <span class="truncate max-w-[220px]">{{ att.fileName }}</span>
-                                <span class="text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatFileSize(att.fileSizeBytes) }}</span>
-                              </span>
-                            }
-                          </div>
-                        }
-                      </div>
-                    }
+                    <app-message-attachments [attachments]="msg.attachments" />
                   </div>
                 </div>
               }
@@ -170,33 +177,92 @@
               <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ replyError() }}</div>
             }
             <form [formGroup]="replyForm" (ngSubmit)="onReply()" class="space-y-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <app-label>To <span class="text-error-500">*</span></app-label>
-                  <app-input-field type="email" placeholder="recipient@example.com" formControlName="toEmail" />
-                  @if (replyForm.get('toEmail')?.invalid && replyForm.get('toEmail')?.touched) {
-                    <p class="mt-1 text-xs text-error-500">Valid email required</p>
+              @if (isWhatsApp()) {
+                <div
+                  class="rounded-lg px-4 py-3 text-sm"
+                  [ngClass]="whatsAppWindowOpen()
+                    ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'
+                    : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'"
+                >
+                  @if (whatsAppWindowOpen()) {
+                    Replying on WhatsApp to <span class="font-medium">+{{ t.senderPhone }}</span> — the reply window closes in {{ whatsAppWindowRemaining() }}.
+                  } @else {
+                    The 24-hour WhatsApp reply window has closed. WhatsApp only allows free-form replies within 24 hours of the customer's last message, so the customer needs to message you again before you can reply.
                   }
                 </div>
-                <div>
-                  <app-label>Cc <span class="text-xs font-normal text-gray-400">(optional)</span></app-label>
-                  <app-input-field placeholder="cc@example.com" formControlName="cc" />
+              } @else {
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <app-label>To <span class="text-error-500">*</span></app-label>
+                    <app-input-field type="email" placeholder="recipient@example.com" formControlName="toEmail" />
+                    @if (replyForm.get('toEmail')?.invalid && replyForm.get('toEmail')?.touched) {
+                      <p class="mt-1 text-xs text-error-500">Valid email required</p>
+                    }
+                  </div>
+                  <div>
+                    <app-label>Cc <span class="text-xs font-normal text-gray-400">(optional)</span></app-label>
+                    <app-input-field placeholder="cc@example.com" formControlName="cc" />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <app-label>Message <span class="text-error-500">*</span></app-label>
+              }
+              <div
+                (dragover)="onFilesDragOver($event)"
+                (dragleave)="onFilesDragLeave()"
+                (drop)="onFilesDropped($event)"
+              >
+                <app-label>Message</app-label>
                 <textarea
                   formControlName="body"
                   rows="5"
-                  placeholder="Type your reply…"
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                  placeholder="Type your reply… (you can also drop files here)"
+                  class="w-full rounded-lg border bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                  [ngClass]="isDraggingFiles() ? 'border-brand-500 ring-2 ring-brand-500/30' : 'border-gray-300 dark:border-gray-700'"
                 ></textarea>
-                @if (replyForm.get('body')?.invalid && replyForm.get('body')?.touched) {
-                  <p class="mt-1 text-xs text-error-500">Required</p>
+
+                @if (uploads().length > 0) {
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    @for (upload of uploads(); track upload.key) {
+                      <div
+                        class="relative inline-flex max-w-full items-center gap-2 overflow-hidden rounded-md border px-2.5 py-1.5 text-xs"
+                        [ngClass]="upload.state === 'error'
+                          ? 'border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400'
+                          : 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                        [title]="upload.error || upload.name"
+                      >
+                        @if (upload.state === 'uploading') {
+                          <span class="absolute inset-y-0 left-0 bg-brand-100/70 dark:bg-brand-500/20 transition-all" [style.width.%]="upload.progress"></span>
+                        }
+                        <span class="relative truncate max-w-[200px]">{{ upload.name }}</span>
+                        <span class="relative whitespace-nowrap text-gray-400">
+                          @if (upload.state === 'uploading') { {{ upload.progress }}% }
+                          @else if (upload.state === 'error') { failed }
+                          @else { {{ formatFileSize(upload.size) }} }
+                        </span>
+                        <button
+                          type="button"
+                          class="relative text-gray-400 hover:text-error-500"
+                          (click)="removeUpload(upload)"
+                          [attr.aria-label]="'Remove ' + upload.name"
+                        >✕</button>
+                      </div>
+                    }
+                  </div>
                 }
               </div>
-              <div class="flex justify-end">
-                <app-button size="sm" [loading]="isReplying()" (btnClick)="onReply()">Send Reply</app-button>
+              <div class="flex items-center justify-between gap-3">
+                <label class="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-400">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                  Attach files
+                  <input type="file" multiple class="hidden" [attr.accept]="isWhatsApp() ? whatsAppAccept : null" (change)="onFilesPicked($event)" />
+                </label>
+                <app-button
+                  size="sm"
+                  [loading]="isReplying()"
+                  [disabled]="(isWhatsApp() && !whatsAppWindowOpen()) || uploadsInProgress()"
+                  (btnClick)="onReply()"
+                >{{ uploadsInProgress() ? 'Uploading…' : 'Send Reply' }}</app-button>
               </div>
             </form>
           </div>
@@ -258,6 +324,38 @@
               >{{ priorityLabel(t.priority) }}</span>
             </div>
             <div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Category</p>
+              @if (t.serviceSubCategory) {
+                <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">
+                  {{ t.serviceCategory?.name }} / {{ t.serviceSubCategory.name }}
+                </p>
+              } @else {
+                <p class="mt-0.5 text-gray-400 dark:text-gray-500 italic">Not categorised</p>
+              }
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">AI Handling</p>
+              @if (t.aiDeclinedReason) {
+                <p class="mt-0.5 font-medium text-amber-600 dark:text-amber-400">Declined — needs human reply</p>
+              } @else if (t.aiEligible) {
+                <p class="mt-0.5 font-medium text-purple-600 dark:text-purple-400">Eligible</p>
+              } @else {
+                <p class="mt-0.5 text-gray-400 dark:text-gray-500 italic">Not eligible</p>
+              }
+            </div>
+            @if (t.slaStatus) {
+              <div>
+                <p class="text-xs text-gray-400 dark:text-gray-500">SLA Status</p>
+                <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ t.slaStatus }}</p>
+              </div>
+            }
+            @if (t.dueDate) {
+              <div>
+                <p class="text-xs text-gray-400 dark:text-gray-500">Due Date</p>
+                <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ formatDate(t.dueDate) }}</p>
+              </div>
+            }
+            <div>
               <p class="text-xs text-gray-400 dark:text-gray-500">Assigned To</p>
               <p class="mt-0.5 font-medium text-gray-700 dark:text-gray-300">{{ assignedToName(t) }}</p>
             </div>
@@ -281,12 +379,17 @@
         </div>
 
         <!-- Actions -->
-        @if (canAssign() || canUpdateStatus() || (!t.isClosed && canClose()) || (t.isClosed && canReopen()) || (!t.isClosed && canForward())) {
+        @if (canAssign() || canUpdateStatus() || canCategorise() || (!t.isClosed && canClose()) || (t.isClosed && canReopen()) || (!t.isClosed && canForward())) {
           <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
             <div class="flex flex-col gap-2">
               @if (canAssign()) {
                 <app-button size="sm" (btnClick)="openModal('assign')">Assign</app-button>
+              }
+              @if (canCategorise()) {
+                <app-button size="sm" variant="outline" (btnClick)="openModal('categorise')">
+                  {{ t.serviceSubCategory ? 'Change Category' : 'Categorise' }}
+                </app-button>
               }
               @if (!t.isClosed && canForward()) {
                 <app-button size="sm" (btnClick)="openModal('forward')">Forward to Team</app-button>
@@ -527,6 +630,60 @@
     <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
       <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
       <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onAddNote()">Add Note</app-button>
+    </div>
+  </app-modal>
+
+  <!-- Categorise Modal (ported Modal component) -->
+  <app-modal [isOpen]="activeModal() === 'categorise'" (close)="closeModal()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Categorise Ticket</h2>
+    </div>
+    <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+      <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+        Assigning a sub-category with an active SLA sets this ticket's due date automatically.
+      </p>
+      @if (modalError()) {
+        <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
+      }
+      <form [formGroup]="categoriseForm" (ngSubmit)="onCategorise()" class="space-y-4">
+        <div>
+          <app-label>Service Category <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="serviceCategoryUid"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            <option value="">Select a category…</option>
+            @for (cat of categories(); track cat.uid) {
+              <option [value]="cat.uid">{{ cat.name }}</option>
+            }
+          </select>
+          @if (categoriseForm.get('serviceCategoryUid')?.invalid && categoriseForm.get('serviceCategoryUid')?.touched) {
+            <p class="mt-1 text-xs text-error-500">Required</p>
+          }
+        </div>
+        <div>
+          <app-label>Sub-Category <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="serviceSubCategoryUid"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            <option value="">Select a sub-category…</option>
+            @for (sub of subCategoriesForSelectedCategory(); track sub.uid) {
+              <option [value]="sub.uid">{{ sub.name }}</option>
+            }
+          </select>
+          @if (categoriseForm.get('serviceSubCategoryUid')?.invalid && categoriseForm.get('serviceSubCategoryUid')?.touched) {
+            <p class="mt-1 text-xs text-error-500">Required</p>
+          }
+          @if (categoriseForm.get('serviceCategoryUid')?.value && subCategoriesForSelectedCategory().length === 0) {
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">This category has no sub-categories yet — add one under Service Categories first.</p>
+          }
+        </div>
+      </form>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+      <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+      <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onCategorise()">Save</app-button>
     </div>
   </app-modal>
 

@@ -9,6 +9,9 @@ export interface PlanItem {
   description: string | null;
   monthlyPriceNaira: number;
   annualPriceNaira: number;
+  // Null when this plan has no fixed USD price configured yet.
+  monthlyPriceUsd: number | null;
+  annualPriceUsd: number | null;
   maxUsers: number;
   maxEmailDesks: number;
   maxStorageGb: number;

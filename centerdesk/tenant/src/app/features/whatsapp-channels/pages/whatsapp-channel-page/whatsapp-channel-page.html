@@ -1,0 +1,269 @@
+<div>
+
+  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
+
+    <!-- Header -->
+    <div class="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">WhatsApp</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          WhatsApp Business numbers whose conversations arrive as tickets alongside email
+        </p>
+      </div>
+      <app-button size="sm" (btnClick)="openCreate()">
+        <svg class="mr-1.5 -ml-0.5 h-4 w-4 inline" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Add Number
+      </app-button>
+    </div>
+
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+      </div>
+
+    } @else if (channels().length === 0) {
+      <div class="border-t border-gray-100 dark:border-white/[0.05] flex flex-col items-center justify-center py-16 text-center px-6">
+        <div class="flex items-center justify-center w-14 h-14 rounded-full bg-success-50 dark:bg-success-500/10 mb-4">
+          <svg class="h-7 w-7 text-success-600 dark:text-success-500" viewBox="0 0 24 24" fill="none">
+            <path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.7L4 20z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-medium text-gray-800 dark:text-white/90 mb-1">No WhatsApp numbers connected</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-md">
+          Connect a WhatsApp Business number from your Meta app. Customer messages will become tickets here,
+          with the same assignment, SLAs and AI auto-response as email.
+        </p>
+        <app-button size="sm" (btnClick)="openCreate()">Add Number</app-button>
+      </div>
+
+    } @else {
+      <div class="max-w-full overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-y border-gray-100 dark:border-white/[0.05]">
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400 sm:px-6">Number</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Phone number ID</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Last message</th>
+              <th class="px-4 py-3 font-medium text-start text-theme-xs text-gray-500 dark:text-gray-400">Status</th>
+              <th class="px-4 py-3 sm:px-6"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            @for (channel of channels(); track channel.uid) {
+              <tr>
+                <td class="px-4 py-3.5 sm:px-6">
+                  <span class="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{{ channel.name }}</span>
+                  <span class="block text-theme-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ channel.displayPhoneNumber }}</span>
+                </td>
+                <td class="px-4 py-3.5">
+                  <span class="font-mono text-theme-xs text-gray-600 dark:text-gray-400">{{ channel.phoneNumberId }}</span>
+                </td>
+                <td class="px-4 py-3.5 text-theme-xs text-gray-500 dark:text-gray-400">
+                  {{ channel.lastMessageAt ? (channel.lastMessageAt | date: 'MMM d, h:mm a') : 'Nothing received yet' }}
+                </td>
+                <td class="px-4 py-3.5">
+                  <div class="flex flex-wrap gap-1.5">
+                    <span
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-theme-xs font-medium"
+                      [ngClass]="channel.isActive
+                        ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                        : 'bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400'"
+                    >{{ channel.isActive ? 'Active' : 'Inactive' }}</span>
+                    @if (channel.aiHandlesAllMessages) {
+                      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-theme-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400">AI: All Messages</span>
+                    }
+                  </div>
+                </td>
+                <td class="px-4 py-3.5 sm:px-6">
+                  <div class="flex items-center justify-end gap-2 whitespace-nowrap">
+                    <button (click)="openSetup(channel)" class="text-theme-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 px-2 py-1">Webhook setup</button>
+                    <button
+                      (click)="testConnection(channel)"
+                      [disabled]="testingUid() === channel.uid"
+                      class="text-theme-xs font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-2 py-1 disabled:opacity-50"
+                    >{{ testingUid() === channel.uid ? 'Testing…' : 'Test' }}</button>
+                    <button (click)="openEdit(channel)" class="text-theme-xs font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-2 py-1">Edit</button>
+                    @if (channel.isActive) {
+                      <button (click)="openDeactivate(channel)" class="text-theme-xs font-medium text-error-600 hover:text-error-700 dark:text-error-400 px-2 py-1">Deactivate</button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Create / Edit modal -->
+  @if (showFormModal()) {
+    <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">
+            {{ modalMode() === 'create' ? 'Add WhatsApp Number' : 'Edit WhatsApp Number' }}
+          </h2>
+          <button (click)="closeForm()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="overflow-y-auto flex-1 px-6 py-5">
+          <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            Find these in your Meta app at <span class="font-medium text-gray-700 dark:text-gray-300">developers.facebook.com → your app → WhatsApp → API Setup</span>
+            (phone number ID) and <span class="font-medium text-gray-700 dark:text-gray-300">App settings → Basic</span> (app secret).
+            Use a permanent System User access token, not the 24-hour temporary one.
+          </p>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <app-label>Name <span class="text-error-500">*</span></app-label>
+                <app-input-field formControlName="name" placeholder="e.g. Acme Support" />
+              </div>
+              <div>
+                <app-label>Phone number <span class="text-error-500">*</span></app-label>
+                <app-input-field formControlName="displayPhoneNumber" placeholder="+234 803 000 0000" />
+              </div>
+              <div>
+                <app-label>Phone number ID <span class="text-error-500">*</span></app-label>
+                <app-input-field formControlName="phoneNumberId" placeholder="e.g. 106540352242922" />
+                @if (form.controls.phoneNumberId.invalid && form.controls.phoneNumberId.touched) {
+                  <p class="mt-1 text-xs text-error-500">Meta's numeric phone number ID — not the phone number itself</p>
+                }
+              </div>
+              <div>
+                <app-label>WhatsApp Business Account ID <span class="text-xs font-normal text-gray-400">(optional)</span></app-label>
+                <app-input-field formControlName="businessAccountId" placeholder="e.g. 102290129340398" />
+              </div>
+              <div>
+                <app-label>
+                  Access token
+                  @if (modalMode() === 'create') { <span class="text-error-500">*</span> }
+                  @else if (editingChannel()?.hasAccessToken) { <span class="text-xs font-normal text-gray-400">(leave blank to keep)</span> }
+                </app-label>
+                <app-input-field type="password" formControlName="accessToken" placeholder="EAAG…" />
+              </div>
+              <div>
+                <app-label>
+                  App secret
+                  @if (modalMode() === 'create') { <span class="text-error-500">*</span> }
+                  @else if (editingChannel()?.hasAppSecret) { <span class="text-xs font-normal text-gray-400">(leave blank to keep)</span> }
+                </app-label>
+                <app-input-field type="password" formControlName="appSecret" placeholder="Used to verify webhook signatures" />
+              </div>
+            </div>
+
+            <div class="mt-5 space-y-3">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" formControlName="sendAcknowledgement" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
+                <span class="text-sm text-gray-700 dark:text-gray-300">
+                  Send an automatic "we've got your message" reply with the ticket number when a new conversation starts
+                </span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer rounded-lg border border-purple-200 bg-purple-50/60 p-3 dark:border-purple-900/40 dark:bg-purple-900/10">
+                <input type="checkbox" formControlName="aiHandlesAllMessages" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
+                <span class="text-sm text-gray-700 dark:text-gray-300">
+                  <span class="font-medium">Let AI handle all messages to this number</span><br />
+                  Every conversation is eligible for an AI reply from your knowledge base, regardless of category.
+                  Customers can always reply again to reach a person.
+                </span>
+              </label>
+              @if (modalMode() === 'edit') {
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" formControlName="isActive" class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                </label>
+              }
+            </div>
+
+            @if (formError()) {
+              <div class="mt-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ formError() }}</div>
+            }
+          </form>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+          <app-button variant="outline" (btnClick)="closeForm()">Cancel</app-button>
+          <app-button [loading]="isSubmitting()" (btnClick)="onSubmit()">{{ modalMode() === 'create' ? 'Add Number' : 'Save' }}</app-button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Webhook setup modal -->
+  @if (setupChannel(); as channel) {
+    <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Connect {{ channel.name }} to Meta</h2>
+          <button (click)="closeSetup()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="overflow-y-auto flex-1 px-6 py-5 space-y-5 text-sm text-gray-700 dark:text-gray-300">
+          <ol class="list-decimal pl-5 space-y-2">
+            <li>In your Meta app, open <span class="font-medium">WhatsApp → Configuration</span> and click <span class="font-medium">Edit</span> under Webhook.</li>
+            <li>Paste the Callback URL and Verify token below, then click <span class="font-medium">Verify and save</span>.</li>
+            <li>Under <span class="font-medium">Webhook fields</span>, subscribe to <span class="font-mono">messages</span>.</li>
+            <li>Send a WhatsApp message to {{ channel.displayPhoneNumber }} — it should appear as a new ticket within seconds.</li>
+          </ol>
+
+          <div>
+            <app-label>Callback URL</app-label>
+            <div class="flex gap-2">
+              <input readonly [value]="channel.webhookUrl" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200" />
+              <app-button size="sm" variant="outline" (btnClick)="copy(channel.webhookUrl, 'Callback URL')">Copy</app-button>
+            </div>
+          </div>
+
+          <div>
+            <app-label>Verify token</app-label>
+            <div class="flex gap-2">
+              <input readonly [value]="channel.verifyToken" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200" />
+              <app-button size="sm" variant="outline" (btnClick)="copy(channel.verifyToken, 'Verify token')">Copy</app-button>
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-warning-50 dark:bg-warning-500/10 px-4 py-3 text-xs text-warning-700 dark:text-warning-400">
+            Meta can only reach a public <span class="font-medium">https</span> address. If the Callback URL above shows
+            <span class="font-mono">localhost</span>, set <span class="font-mono">WhatsApp:WebhookBaseUrl</span> in the API's
+            appsettings to your public API address (or a tunnel URL while testing).
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+          <app-button (btnClick)="closeSetup()">Done</app-button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Deactivate confirmation -->
+  @if (deactivatingChannel(); as channel) {
+    <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="p-6 text-center">
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2">Deactivate WhatsApp Number</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Stop receiving and sending messages on
+            <span class="font-medium text-gray-900 dark:text-white">{{ channel.name }}</span>?
+            Existing tickets keep their history, and you can reactivate it later from Edit.
+          </p>
+        </div>
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+          <app-button variant="outline" (btnClick)="closeDeactivate()">Cancel</app-button>
+          <app-button
+            className="bg-error-500 hover:bg-error-600 focus:ring-error-500/20 dark:bg-error-500 dark:hover:bg-error-600"
+            [loading]="isDeactivating()"
+            (btnClick)="onDeactivate()"
+          >Deactivate</app-button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

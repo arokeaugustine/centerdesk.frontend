@@ -17,12 +17,11 @@
       'justify-start': isVisible()
     }"
   >
-    <a routerLink="/dashboard">
+    <a routerLink="/dashboard" aria-label="CenterDesk dashboard">
       @if (isVisible()) {
-        <img class="dark:hidden" src="/images/logo/logo.svg" alt="Logo" width="150" height="40" />
-        <img class="hidden dark:block" src="/images/logo/logo-dark.svg" alt="Logo" width="150" height="40" />
+        <app-brand-logo />
       } @else {
-        <img src="/images/logo/logo-icon.svg" alt="Logo" width="32" height="32" />
+        <app-brand-logo variant="mark" />
       }
     </a>
   </div>

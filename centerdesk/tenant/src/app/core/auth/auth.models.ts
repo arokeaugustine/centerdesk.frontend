@@ -120,3 +120,10 @@ export interface ApiResult<T> {
   content: T;
   paging: Paging | null;
 }
+
+/** GET /api/auth/reset-password — whether an emailed link is still good, and who for. */
+export interface PasswordResetCheck {
+  valid: boolean;
+  email: string | null;
+  reason: string | null;
+}

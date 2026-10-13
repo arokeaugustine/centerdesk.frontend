@@ -5,6 +5,7 @@ import { Component, Input } from '@angular/core';
   selector: 'app-table-row',
   imports: [NgClass],
   template: `<tr [ngClass]="className"><ng-content></ng-content></tr>`,
+  styles: `:host { display: contents; }`,
 })
 export class TableRow {
   @Input() className = 'hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors';

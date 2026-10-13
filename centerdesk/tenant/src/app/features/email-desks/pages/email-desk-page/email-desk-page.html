@@ -91,6 +91,13 @@
                         : 'bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400'"
                     >{{ desk.isActive ? 'Active' : 'Inactive' }}</span>
 
+                    @if (desk.aiHandlesAllMail) {
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-theme-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400"
+                        title="Every ticket from this desk is AI-eligible, regardless of sub-category"
+                      >AI: All Mail</span>
+                    }
+
                     @if (getTestResult(desk.uid) !== undefined) {
                       <span
                         class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-theme-xs font-medium"
@@ -212,6 +219,16 @@
                   <label for="isActive" class="text-sm text-gray-700 dark:text-gray-400 cursor-pointer select-none">Active</label>
                 </div>
               }
+              <div class="flex items-start gap-3 rounded-lg bg-purple-50/50 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/10 px-3 py-2.5">
+                <input type="checkbox" formControlName="aiHandlesAllMail" id="aiHandlesAllMail"
+                  class="h-4 w-4 mt-0.5 rounded border-gray-300 accent-brand-500 dark:border-gray-700 cursor-pointer" />
+                <label for="aiHandlesAllMail" class="text-sm text-gray-700 dark:text-gray-400 cursor-pointer select-none">
+                  Let AI handle all mail from this desk
+                  <span class="block text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-normal">
+                    Overrides the per-subcategory AI setting — every ticket from this desk becomes AI-eligible.
+                  </span>
+                </label>
+              </div>
             </div>
 
             <hr class="border-gray-100 dark:border-gray-800 mb-6" />

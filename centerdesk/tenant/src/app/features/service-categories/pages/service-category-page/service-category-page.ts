@@ -63,11 +63,17 @@ export class ServiceCategoryPage implements OnInit {
   protected readonly addSubForm = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.maxLength(100)]),
     description: new FormControl(''),
+    resolutionTimeHours: new FormControl<number | null>(null),
+    responseTimeMinutes: new FormControl<number | null>(null),
+    aiHandlingEnabled: new FormControl<boolean>(false, { nonNullable: true }),
   });
 
   protected readonly editSubForm = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.maxLength(100)]),
     description: new FormControl(''),
+    resolutionTimeHours: new FormControl<number | null>(null),
+    responseTimeMinutes: new FormControl<number | null>(null),
+    aiHandlingEnabled: new FormControl<boolean>(false, { nonNullable: true }),
   });
 
   ngOnInit(): void {
@@ -111,8 +117,8 @@ export class ServiceCategoryPage implements OnInit {
   protected openSubcategories(cat: ServiceCategory): void {
     this.selectedCategory.set(cat);
     this.editingSubUid.set(null);
-    this.addSubForm.reset();
-    this.editSubForm.reset();
+    this.addSubForm.reset({ aiHandlingEnabled: false });
+    this.editSubForm.reset({ aiHandlingEnabled: false });
     this.activeModal.set('subcategories');
   }
 
@@ -193,6 +199,15 @@ export class ServiceCategoryPage implements OnInit {
     });
   }
 
+  // app-input-field's ControlValueAccessor always writes/reads plain strings (even for
+  // type="number" inputs), regardless of the FormControl's declared <number | null> type.
+  // Convert on the way out so the API always receives a real number or null, never "" or "24".
+  private toNullableInt(raw: unknown): number | null {
+    if (raw === null || raw === undefined || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.trunc(n) : null;
+  }
+
   protected onAddSubcategory(): void {
     if (this.isAddingSubcategory()) return;
     if (this.addSubForm.invalid) { this.addSubForm.markAllAsTouched(); return; }
@@ -200,15 +215,31 @@ export class ServiceCategoryPage implements OnInit {
     if (!cat) return;
     this.isAddingSubcategory.set(true);
     const v = this.addSubForm.getRawValue();
-    this.svc.createSubCategory(cat.uid, { name: v.name!, description: v.description || null }).subscribe({
+    const resolutionTimeHours = this.toNullableInt(v.resolutionTimeHours);
+    const responseTimeMinutes = this.toNullableInt(v.responseTimeMinutes);
+    this.svc.createSubCategory(cat.uid, {
+      name: v.name!,
+      description: v.description || null,
+      resolutionTimeHours,
+      responseTimeMinutes,
+      aiHandlingEnabled: v.aiHandlingEnabled,
+    }).subscribe({
       next: (res) => {
         if (res.success) {
-          const newSub: ServiceSubCategory = { uid: res.content.uid, name: res.content.name, description: v.description || null, isActive: true };
+          const newSub: ServiceSubCategory = {
+            uid: res.content.uid,
+            name: res.content.name,
+            description: v.description || null,
+            isActive: true,
+            resolutionTimeHours,
+            responseTimeMinutes,
+            aiHandlingEnabled: v.aiHandlingEnabled,
+          };
           this.categories.update(list =>
             list.map(c => c.uid === cat.uid ? { ...c, subCategories: [...c.subCategories, newSub] } : c)
           );
           this.selectedCategory.update(c => c ? { ...c, subCategories: [...c.subCategories, newSub] } : c);
-          this.addSubForm.reset();
+          this.addSubForm.reset({ aiHandlingEnabled: false });
           this.toast.success('Subcategory added.');
         } else {
           this.toast.error(res.message || 'Failed to add subcategory.');
@@ -221,12 +252,18 @@ export class ServiceCategoryPage implements OnInit {
 
   protected startEditSub(sub: ServiceSubCategory): void {
     this.editingSubUid.set(sub.uid);
-    this.editSubForm.reset({ name: sub.name, description: sub.description ?? '' });
+    this.editSubForm.reset({
+      name: sub.name,
+      description: sub.description ?? '',
+      resolutionTimeHours: sub.resolutionTimeHours,
+      responseTimeMinutes: sub.responseTimeMinutes,
+      aiHandlingEnabled: sub.aiHandlingEnabled,
+    });
   }
 
   protected cancelEditSub(): void {
     this.editingSubUid.set(null);
-    this.editSubForm.reset();
+    this.editSubForm.reset({ aiHandlingEnabled: false });
   }
 
   protected onSaveSubcategory(): void {
@@ -237,11 +274,26 @@ export class ServiceCategoryPage implements OnInit {
     if (!subUid || !cat) return;
     this.isSubmitting.set(true);
     const v = this.editSubForm.getRawValue();
-    this.svc.updateSubCategory(subUid, { name: v.name!, description: v.description || null }).subscribe({
+    const resolutionTimeHours = this.toNullableInt(v.resolutionTimeHours);
+    const responseTimeMinutes = this.toNullableInt(v.responseTimeMinutes);
+    this.svc.updateSubCategory(subUid, {
+      name: v.name!,
+      description: v.description || null,
+      resolutionTimeHours,
+      responseTimeMinutes,
+      aiHandlingEnabled: v.aiHandlingEnabled,
+    }).subscribe({
       next: (res) => {
         if (res.success) {
           const updateSub = (subs: ServiceSubCategory[]) =>
-            subs.map(s => s.uid === subUid ? { ...s, name: res.content.name, description: res.content.description } : s);
+            subs.map(s => s.uid === subUid ? {
+              ...s,
+              name: res.content.name,
+              description: res.content.description,
+              resolutionTimeHours,
+              responseTimeMinutes,
+              aiHandlingEnabled: v.aiHandlingEnabled,
+            } : s);
           this.categories.update(list =>
             list.map(c => c.uid === cat.uid ? { ...c, subCategories: updateSub(c.subCategories) } : c)
           );
@@ -274,6 +326,14 @@ export class ServiceCategoryPage implements OnInit {
       },
       error: () => this.deletingSubUid.set(null),
     });
+  }
+
+  protected formatTimeframe(sub: ServiceSubCategory): string | null {
+    if (sub.resolutionTimeHours == null && sub.responseTimeMinutes == null) return null;
+    const parts: string[] = [];
+    if (sub.responseTimeMinutes != null) parts.push(`${sub.responseTimeMinutes}m response`);
+    if (sub.resolutionTimeHours != null) parts.push(`${sub.resolutionTimeHours}h resolution`);
+    return parts.join(' / ');
   }
 
   protected formatDate(iso: string): string {

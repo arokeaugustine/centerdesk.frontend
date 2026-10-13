@@ -7,11 +7,11 @@ import { Button } from '../../../../shared/components/button/button';
 import { Checkbox } from '../../../../shared/components/checkbox/checkbox';
 import { InputField } from '../../../../shared/components/input-field/input-field';
 import { Label } from '../../../../shared/components/label/label';
-import { ThemeToggleTwo } from '../../../../shared/components/common/theme-toggle-two/theme-toggle-two';
+import { AuthLayout } from '../../../../shared/components/common/auth-layout/auth-layout';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink, Button, Checkbox, InputField, Label, ThemeToggleTwo],
+  imports: [ReactiveFormsModule, RouterLink, AuthLayout, Button, Checkbox, InputField, Label],
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
 })

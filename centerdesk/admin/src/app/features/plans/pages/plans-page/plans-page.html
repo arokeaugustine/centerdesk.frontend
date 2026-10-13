@@ -1,4 +1,38 @@
 <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
   <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Plans</h2>
-  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage subscription plans.</p>
+  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    Subscription plans and their NGN / USD pricing. Editing plans is not yet supported here —
+    update prices directly in the database until a plan-management screen is built.
+  </p>
+
+  @if (isLoading()) {
+    <p class="mt-4 text-sm text-gray-400">Loading plans…</p>
+  } @else if (loadError()) {
+    <p class="mt-4 text-sm text-error-600 dark:text-error-400">{{ loadError() }}</p>
+  } @else {
+    <div class="mt-5 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-800">
+            <th class="py-2 pr-4">Plan</th>
+            <th class="py-2 pr-4">Monthly (NGN)</th>
+            <th class="py-2 pr-4">Annual (NGN)</th>
+            <th class="py-2 pr-4">Monthly (USD)</th>
+            <th class="py-2 pr-4">Annual (USD)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (plan of plans(); track plan.id) {
+            <tr class="border-b border-gray-50 dark:border-gray-800/60">
+              <td class="py-3 pr-4 font-medium text-gray-800 dark:text-white/90">{{ plan.name }}</td>
+              <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatNaira(plan.monthlyPriceNaira) }}</td>
+              <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ formatNaira(plan.annualPriceNaira) }}</td>
+              <td class="py-3 pr-4" [class.text-gray-400]="plan.monthlyPriceUsd == null">{{ formatUsd(plan.monthlyPriceUsd) }}</td>
+              <td class="py-3 pr-4" [class.text-gray-400]="plan.annualPriceUsd == null">{{ formatUsd(plan.annualPriceUsd) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 </div>

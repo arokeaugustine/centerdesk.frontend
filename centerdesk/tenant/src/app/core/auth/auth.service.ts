@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, map, of, shareReplay, catchError } from 'rxjs';
-import { ApiResult, LoginContent, LoginRequest, User } from './auth.models';
+import { ApiResult, LoginContent, LoginRequest, PasswordResetCheck, User } from './auth.models';
 import { API_BASE_URL } from '../config/api.config';
 import { TenantService } from '../tenant/tenant.service';
 import { ToastService } from '../../shared/services/toast.service';
@@ -136,6 +136,34 @@ export class AuthService {
       ? `${this.apiBaseUrl}/api/auth/login?tenantSlug=${slug}`
       : `${this.apiBaseUrl}/api/auth/login`;
     return this.http.post<ApiResult<LoginContent>>(url, { email, password } satisfies LoginRequest);
+  }
+
+  /**
+   * Asks for a password reset link. The answer is the same whether or not the address has an
+   * account here, so nothing in it should be shown as "we found you" / "we didn't".
+   */
+  forgotPassword(email: string) {
+    const slug = this.tenantService.tenantSlug();
+    const url = slug
+      ? `${this.apiBaseUrl}/api/auth/forgot-password?tenantSlug=${slug}`
+      : `${this.apiBaseUrl}/api/auth/forgot-password`;
+    return this.http.post<ApiResult<unknown>>(url, { email });
+  }
+
+  /** Whether a link from a reset email is still usable, checked before asking for a password. */
+  checkResetToken(token: string) {
+    return this.http.get<ApiResult<PasswordResetCheck>>(
+      `${this.apiBaseUrl}/api/auth/reset-password`,
+      { params: { token } },
+    );
+  }
+
+  /** The token carries which account it belongs to, so the slug isn't sent here. */
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post<ApiResult<unknown>>(
+      `${this.apiBaseUrl}/api/auth/reset-password`,
+      { token, newPassword },
+    );
   }
 
   logout(): void {

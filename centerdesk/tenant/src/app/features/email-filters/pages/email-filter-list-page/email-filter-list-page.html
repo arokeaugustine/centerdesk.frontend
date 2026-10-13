@@ -1,0 +1,163 @@
+<div class="p-4 md:p-6">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Email Filters</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        {{ filters().length }} filter(s) — evaluated in order against every inbound email, first match wins
+      </p>
+    </div>
+    @if (canManage()) {
+      <app-button size="sm" (btnClick)="openCreate()">New Filter</app-button>
+    }
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+      </div>
+    } @else if (filters().length === 0) {
+      <div class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
+        <p class="text-sm font-medium">No email filters yet</p>
+        <p class="text-xs mt-1">Reject spam, or auto-set priority/category on intake, before a ticket is created</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <app-table>
+          <app-table-header>
+            <app-table-row className="">
+              <app-table-cell [isHeader]="true" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Desk</app-table-cell>
+              <app-table-cell [isHeader]="true" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">If</app-table-cell>
+              <app-table-cell [isHeader]="true" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Then</app-table-cell>
+              <app-table-cell [isHeader]="true" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</app-table-cell>
+              <app-table-cell [isHeader]="true" className="px-4 py-3"></app-table-cell>
+            </app-table-row>
+          </app-table-header>
+          <app-table-body>
+            @for (filter of filters(); track filter.uid) {
+              <app-table-row>
+                <app-table-cell>{{ filter.emailDeskName }}</app-table-cell>
+                <app-table-cell>
+                  <span class="font-mono text-xs">{{ filter.filterType }}</span>
+                  <span class="text-gray-400"> = </span>
+                  <span class="text-gray-700 dark:text-gray-300">"{{ filter.filterValue }}"</span>
+                </app-table-cell>
+                <app-table-cell>{{ describeAction(filter.action) }}</app-table-cell>
+                <app-table-cell>
+                  <app-badge [color]="filter.isActive ? 'success' : 'error'" size="sm">
+                    {{ filter.isActive ? 'Active' : 'Inactive' }}
+                  </app-badge>
+                </app-table-cell>
+                <app-table-cell className="px-4 py-3 text-right">
+                  @if (canManage()) {
+                    <div class="flex items-center justify-end gap-3">
+                      <button (click)="openEdit(filter)" class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
+                        Edit
+                      </button>
+                      @if (filter.isActive) {
+                        <button (click)="onDeactivate(filter)" class="text-xs font-medium text-error-600 dark:text-error-400 hover:text-error-700 dark:hover:text-error-300 transition-colors">
+                          Deactivate
+                        </button>
+                      }
+                    </div>
+                  }
+                </app-table-cell>
+              </app-table-row>
+            }
+          </app-table-body>
+        </app-table>
+      </div>
+    }
+  </div>
+</div>
+
+<app-modal [isOpen]="activeModal() !== null" (close)="closeModal()">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ activeModal() === 'edit' ? 'Edit Filter' : 'New Filter' }}</h2>
+  </div>
+  <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+    @if (formError()) {
+      <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ formError() }}</div>
+    }
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+      @if (activeModal() === 'create') {
+        <div>
+          <app-label>Email Desk <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="emailDeskUid"
+            class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+          >
+            <option value="" disabled>Select a desk</option>
+            @for (desk of emailDesks(); track desk.uid) {
+              <option [value]="desk.uid">{{ desk.name }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <app-label>Filter Type <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="filterType"
+            class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+          >
+            @for (t of filterTypes; track t.value) {
+              <option [value]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <app-label>Value <span class="text-error-500">*</span></app-label>
+          <app-input-field placeholder="e.g. spamdomain.com" formControlName="filterValue" />
+        </div>
+      </div>
+      <div>
+        <app-label>Then <span class="text-error-500">*</span></app-label>
+        <select
+          formControlName="action"
+          class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+        >
+          @for (a of filterActions; track a.value) {
+            <option [value]="a.value">{{ a.label }}</option>
+          }
+        </select>
+      </div>
+      @if (isSetCategory()) {
+        <div>
+          <app-label>Service Category <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="categoryUid"
+            class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+          >
+            <option value="" disabled>Select a category</option>
+            @for (c of categories(); track c.uid) {
+              <option [value]="c.uid">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+      }
+      @if (isSetSubCategory()) {
+        <div>
+          <app-label>Service Sub-Category <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="subCategoryUid"
+            class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+          >
+            <option value="" disabled>Select a sub-category</option>
+            @for (s of subCategoryOptions(); track s.uid) {
+              <option [value]="s.uid">{{ s.label }}</option>
+            }
+          </select>
+        </div>
+      }
+      <p class="text-xs text-gray-400 dark:text-gray-500 -mt-2">
+        Filters run in the order they were created; the first matching rule wins.
+      </p>
+    </form>
+  </div>
+  <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+    <button (click)="closeModal()" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+    <app-button size="sm" [loading]="isSubmitting()" (btnClick)="onSubmit()">{{ activeModal() === 'edit' ? 'Save Changes' : 'Create Filter' }}</app-button>
+  </div>
+</app-modal>

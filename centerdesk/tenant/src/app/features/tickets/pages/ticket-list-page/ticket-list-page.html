@@ -95,7 +95,13 @@
                 </td>
                 <td class="px-4 py-3 max-w-[260px]">
                   <p class="font-medium text-gray-900 dark:text-white truncate">{{ ticket.subject }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ ticket.senderName }} &lt;{{ ticket.senderEmail }}&gt;</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    @if (ticket.whatsAppChannel) {
+                      <span class="mr-1 rounded bg-success-50 px-1 py-px text-[10px] font-medium text-success-700 dark:bg-success-500/15 dark:text-success-500">WhatsApp</span>{{ ticket.senderName }}
+                    } @else {
+                      {{ ticket.senderName }} &lt;{{ ticket.senderEmail }}&gt;
+                    }
+                  </p>
                 </td>
                 <td class="px-4 py-3">
                   <span

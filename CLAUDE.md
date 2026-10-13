@@ -45,10 +45,12 @@ The app is a multi-tenant SaaS product. At startup, `TenantService` extracts the
 ### Routing Shape
 
 ```
-/                   → redirects to /dashboard
-/auth/login         → LoginPage (tenantGuard only — not authGuard)
-/not-found          → 404 page
-/ (Shell layout)    → guarded by tenantGuard + authGuard
+/                        → redirects to /dashboard
+/auth/login              → LoginPage (tenantGuard only — not authGuard)
+/auth/forgot-password    → ForgotPasswordPage (tenantGuard only)
+/auth/reset-password     → ResetPasswordPage (tenantGuard only; reads ?token=)
+/not-found               → 404 page
+/ (Shell layout)         → guarded by tenantGuard + authGuard
   /dashboard
   /account
   /settings
@@ -139,6 +141,34 @@ All endpoints require `Authorization` + `X-Tenant-Slug` headers (injected by int
 - `GetAll` only returns active roles (soft-delete pattern — `IsActive = false`)
 - Cannot delete a role that is still assigned to users (returns 400)
 - Permissions are stored and exchanged as hex strings matching the frontend `permissionToHex` helper
+
+### Password Reset (`api/auth`)
+
+Anonymous endpoints shared by both apps. A reset token is a one-use secret that expires in an
+hour; only its SHA-256 hash is stored, in the **central** `PasswordResetTokens` table, together
+with which account it belongs to (a system admin, or a tenant + email). Because the token carries
+that, completing a reset needs no slug — both apps post to the same endpoint.
+
+| Method | Path | Used by | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/forgot-password?tenantSlug=` | tenant app | Link for any active user in that workspace |
+| `POST` | `/api/auth/forgot-password/account` | admin app | Link for a system admin or a workspace owner (`Tenant.AdminEmail`) |
+| `GET` | `/api/auth/reset-password?token=` | both | Is the link still good? `{ valid, email, reason }` |
+| `POST` | `/api/auth/reset-password` | both | `{ token, newPassword }` — min 8 characters |
+
+**Key behaviours:**
+- Both `forgot-password` endpoints answer identically whether or not the address has an account, so
+  neither form can be used to discover who does. Nothing in the UI should imply otherwise.
+- Asking again retires the previous link; completing a reset retires every outstanding one.
+- A successful reset revokes that account's refresh tokens, so sessions on the old password end.
+- Resetting a workspace **owner's** password also updates `Tenant.AdminPasswordHash` centrally —
+  re-provisioning a workspace copies that back over the user's, so leaving it stale would restore
+  the old password.
+- Link hosts come from config: `AppSettings:MainSiteUrl` (blank → `https://{BaseDomain}`) for the
+  admin app, and `Billing:TenantAppUrl` / `BaseDomain` for a workspace. **Set both in development**,
+  or emailed links point at production hosts.
+- Rate limited per IP: `forgot-password` 5 per 15 min (`password-reset` policy), `reset-password`
+  10 per min (`auth` policy).
 
 ### Styling
 

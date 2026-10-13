@@ -4,10 +4,11 @@ import { RouterLink } from '@angular/router';
 import { SidebarService } from '../../core/sidebar/sidebar.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { BrandLogo } from '../../shared/site/brand-logo';
 
 @Component({
   selector: 'app-topbar',
-  imports: [NgClass, RouterLink],
+  imports: [NgClass, RouterLink, BrandLogo],
   templateUrl: './topbar.html',
   styleUrl: './topbar.scss',
 })

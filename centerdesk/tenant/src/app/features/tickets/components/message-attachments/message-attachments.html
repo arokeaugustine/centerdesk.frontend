@@ -1,0 +1,97 @@
+@if (hasAny()) {
+  <div class="mt-3 space-y-2">
+    <!-- Images: thumbnails that open full size in a new tab -->
+    @if (images().length > 0) {
+      <div class="flex flex-wrap gap-2">
+        @for (img of images(); track img.uid) {
+          <a
+            [href]="img.viewUrl"
+            target="_blank"
+            rel="noopener"
+            class="group relative block overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+            [title]="img.fileName + ' — open full size'"
+          >
+            <img [src]="img.viewUrl" [alt]="img.fileName" loading="lazy" class="h-36 max-w-[16rem] object-cover" />
+            <span class="absolute inset-x-0 bottom-0 truncate bg-black/50 px-2 py-0.5 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+              {{ img.fileName }}
+            </span>
+          </a>
+        }
+      </div>
+    }
+
+    <!-- Voice notes and other audio -->
+    @for (audio of audios(); track audio.uid) {
+      <div class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+        <svg class="h-4 w-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ isVoiceNote(audio) ? 'Voice note' : audio.fileName }}</span>
+        @if (canPlay(audio)) {
+          <audio controls preload="none" [src]="audio.viewUrl" class="h-9 max-w-full"></audio>
+        } @else {
+          <span class="text-xs text-gray-400">This browser can't play {{ audio.contentType }} — download it to listen.</span>
+        }
+        @if (audio.downloadUrl) {
+          <a [href]="audio.downloadUrl" class="ml-auto text-xs font-medium text-brand-600 hover:underline dark:text-brand-400">Download</a>
+        }
+      </div>
+    }
+
+    <!-- Video -->
+    @for (video of videos(); track video.uid) {
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2">
+        @if (canPlay(video)) {
+          <video controls preload="metadata" [src]="video.viewUrl" class="max-h-72 max-w-full rounded"></video>
+        }
+        <div class="mt-1 flex items-center justify-between gap-2 text-xs">
+          <span class="truncate text-gray-600 dark:text-gray-300">{{ video.fileName }} <span class="text-gray-400">{{ formatSize(video.fileSizeBytes) }}</span></span>
+          @if (video.downloadUrl) {
+            <a [href]="video.downloadUrl" class="shrink-0 font-medium text-brand-600 hover:underline dark:text-brand-400">Download</a>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Documents and everything else, plus files still downloading or that failed -->
+    @if (files().length > 0) {
+      <div class="flex flex-wrap gap-2">
+        @for (file of files(); track file.uid) {
+          <div
+            class="inline-flex max-w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs"
+            [class]="file.status === 'failed'
+              ? 'border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400'
+              : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400'"
+            [title]="file.status === 'failed' ? (file.error || 'This file could not be saved.') : file.fileName"
+          >
+            @if (file.status === 'pending') {
+              <span class="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></span>
+            } @else {
+              <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            }
+            <span class="truncate max-w-[220px]">{{ file.fileName }}</span>
+            @if (file.status === 'pending') {
+              <span class="whitespace-nowrap text-gray-400">downloading…</span>
+            } @else if (file.status === 'failed') {
+              <span class="whitespace-nowrap">not saved</span>
+            } @else {
+              <span class="whitespace-nowrap text-gray-400 dark:text-gray-500">{{ formatSize(file.fileSizeBytes) }}</span>
+              @if (isRisky(file)) {
+                <span class="whitespace-nowrap rounded bg-warning-50 px-1 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400" title="This kind of file can contain code. Only open it if you trust the sender.">caution</span>
+              }
+              @if (file.viewUrl) {
+                <a [href]="file.viewUrl" target="_blank" rel="noopener" class="font-medium text-brand-600 hover:underline dark:text-brand-400">Open</a>
+              }
+              @if (file.downloadUrl) {
+                <a [href]="file.downloadUrl" class="font-medium text-brand-600 hover:underline dark:text-brand-400">Download</a>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

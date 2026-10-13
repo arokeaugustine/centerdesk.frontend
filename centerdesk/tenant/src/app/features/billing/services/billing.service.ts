@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import { ApiResult } from '../../../core/auth/auth.models';
-import { CurrentSubscription, PlanItem, UpgradeResult, VerifyResult } from '../models/billing.models';
+import { BillingCurrency, CurrentSubscription, PlanItem, UpgradeResult, VerifyResult } from '../models/billing.models';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {
@@ -21,10 +21,10 @@ export class BillingService {
     );
   }
 
-  initiateUpgrade(planId: number, billingCycle: 'Monthly' | 'Annual') {
+  initiateUpgrade(planId: number, billingCycle: 'Monthly' | 'Annual', currency: BillingCurrency) {
     return this.http.post<ApiResult<UpgradeResult>>(
       `${this.apiBaseUrl}/api/subscription/upgrade`,
-      { planId, billingCycle, callbackUrl: this.callbackUrl() }
+      { planId, billingCycle, currency, callbackUrl: this.callbackUrl() }
     );
   }
 
@@ -35,16 +35,32 @@ export class BillingService {
     );
   }
 
-  verifyPayment(reference: string) {
-    const params = new HttpParams().set('reference', reference);
+  // Bachs sends the customer back with ?checkout_id=…; our own reference works too.
+  verifyPayment(lookup: { checkoutId?: string; reference?: string }) {
+    let params = new HttpParams();
+    if (lookup.checkoutId) params = params.set('checkoutId', lookup.checkoutId);
+    if (lookup.reference) params = params.set('reference', lookup.reference);
     return this.http.get<ApiResult<VerifyResult>>(
       `${this.apiBaseUrl}/api/billing/verify`,
       { params }
     );
   }
 
-  // The current tenant's own origin (subdomain) + callback route. Paystack redirects
-  // the user's browser back here after payment, so it must match the tenant host.
+  setAutoRenew(enabled: boolean) {
+    return this.http.put<ApiResult<{ autoRenew: boolean }>>(
+      `${this.apiBaseUrl}/api/subscription/auto-renew`,
+      { enabled }
+    );
+  }
+
+  removePaymentMethod(uid: string) {
+    return this.http.delete<ApiResult<unknown>>(
+      `${this.apiBaseUrl}/api/subscription/payment-methods/${uid}`
+    );
+  }
+
+  // The current tenant's own origin (subdomain) + callback route. Bachs redirects the
+  // user's browser back here after payment, so it must match the tenant host.
   private callbackUrl(): string {
     return `${window.location.origin}/billing/payment-callback`;
   }

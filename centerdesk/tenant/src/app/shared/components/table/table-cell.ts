@@ -4,6 +4,7 @@ import { Component, Input } from '@angular/core';
 @Component({
   selector: 'app-table-cell',
   imports: [NgClass],
+  styles: `:host { display: contents; }`,
   template: `
     @if (isHeader) {
       <th [ngClass]="className">

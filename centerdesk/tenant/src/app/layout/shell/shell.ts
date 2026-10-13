@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { SidebarService } from '../../core/sidebar/sidebar.service';
+import { NotificationClientService } from '../../core/notifications/notification-client.service';
 import { Sidebar } from '../sidebar/sidebar';
 import { Topbar } from '../topbar/topbar';
 
@@ -13,4 +14,8 @@ import { Topbar } from '../topbar/topbar';
 })
 export class Shell {
   protected readonly sidebar = inject(SidebarService);
+
+  // Injected solely to start the SignalR connection lifecycle (see the service's doc comment) —
+  // Shell is only ever mounted once the user is authenticated.
+  private readonly notifications = inject(NotificationClientService);
 }

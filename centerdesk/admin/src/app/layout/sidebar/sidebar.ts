@@ -5,6 +5,7 @@ import { AdminPermission } from '../../core/auth/auth.models';
 import { PermissionService } from '../../core/auth/permission.service';
 import { SidebarService } from '../../core/sidebar/sidebar.service';
 import { SafeHtmlPipe } from '../../shared/pipes/safe-html.pipe';
+import { BrandLogo } from '../../shared/site/brand-logo';
 
 type NavItem = {
   name: string;
@@ -15,7 +16,7 @@ type NavItem = {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [NgClass, RouterLink, SafeHtmlPipe],
+  imports: [NgClass, RouterLink, SafeHtmlPipe, BrandLogo],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })

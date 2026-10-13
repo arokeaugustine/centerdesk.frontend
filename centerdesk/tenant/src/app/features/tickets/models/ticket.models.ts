@@ -44,12 +44,26 @@ export interface TicketUser {
   isActive: boolean;
 }
 
+export type TicketAttachmentStatus = 'ready' | 'pending' | 'failed';
+
 export interface TicketAttachment {
   uid: string;
   fileName: string;
   contentType: string;
+  /** 0 while a WhatsApp file is still downloading. */
   fileSizeBytes: number;
   createdAt: string;
+  /** "pending" = a WhatsApp file still being fetched from Meta; "failed" = couldn't be stored (see error). */
+  status: TicketAttachmentStatus;
+  /** An image embedded in the email's HTML — it already shows inside the message body. */
+  isInline: boolean;
+  /** Short-lived link to show the file in the browser; only for images, audio, video and PDFs. */
+  viewUrl: string | null;
+  /** Short-lived link that downloads the file under its original name. */
+  downloadUrl: string | null;
+  /** When viewUrl/downloadUrl stop working; the thread refreshes them before then. */
+  linksExpireAt: string | null;
+  error: string | null;
 }
 
 export interface TicketMessageSender {
@@ -100,6 +114,12 @@ export interface TicketServiceCategoryRef {
   name: string;
 }
 
+export interface TicketWhatsAppChannel {
+  uid: string;
+  name: string;
+  displayPhoneNumber: string;
+}
+
 export interface TicketSummary {
   uid: string;
   ticketNumber: string;
@@ -115,6 +135,11 @@ export interface TicketSummary {
   createdAt: string;
   assignedTo: TicketUser | null;
   emailDesk: TicketEmailDesk | null;
+  // WhatsApp tickets only: the customer's number (senderEmail is empty), the number it came in
+  // on, and when Meta's 24-hour free-form reply window closes.
+  senderPhone: string | null;
+  whatsAppChannel: TicketWhatsAppChannel | null;
+  whatsAppReplyWindowEndsAt: string | null;
   serviceCategory: TicketServiceCategoryRef | null;
   serviceSubCategory: TicketServiceCategoryRef | null;
   // Gate 1 of the AI auto-response design — true if EITHER the desk this ticket came in on
@@ -161,6 +186,11 @@ export interface Ticket {
   assignedTo: TicketUser | null;
   closedByNavigation: TicketUser | null;
   emailDesk: TicketEmailDesk | null;
+  // WhatsApp tickets only: the customer's number (senderEmail is empty), the number it came in
+  // on, and when Meta's 24-hour free-form reply window closes.
+  senderPhone: string | null;
+  whatsAppChannel: TicketWhatsAppChannel | null;
+  whatsAppReplyWindowEndsAt: string | null;
   // Populated by the API's TicketDetailDto/TicketDto (see TicketMapper) once a ticket has
   // been categorised — null until then.
   serviceCategory: TicketServiceCategoryRef | null;
@@ -212,6 +242,8 @@ export interface ReplyMessageRequest {
   cc?: string | null;
   bcc?: string | null;
   channel?: string | null;
+  /** Files uploaded beforehand with TicketService.uploadAttachment. */
+  attachmentUids?: string[];
 }
 
 /** Internal-only note on a ticket — see MessagesController.AddNote / CanAddInternalNote. */

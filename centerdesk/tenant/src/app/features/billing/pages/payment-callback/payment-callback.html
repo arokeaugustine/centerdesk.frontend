@@ -12,7 +12,7 @@
         </div>
         <div>
           <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Verifying your payment…</h2>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Please wait while we confirm your transaction with Paystack.</p>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Please wait while we confirm your payment.</p>
         </div>
       </div>
     }
@@ -45,7 +45,7 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <dt class="text-sm text-gray-500 dark:text-gray-400">Amount Charged</dt>
-                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ formatCurrency(result.amountNaira ?? 0) }}</dd>
+                  <dd class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ formatCurrency(result.amount ?? 0, result.currency ?? 'NGN') }}</dd>
                 </div>
               </dl>
             </div>
