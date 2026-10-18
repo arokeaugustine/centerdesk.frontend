@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, inject, signal, viewChildren } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -9,7 +9,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { AuthSplitLayout } from '../../shared/site/auth-split-layout';
 import { SITE } from '../../shared/site/site-links';
 import { environment } from '../../../environments/environment';
-import { SLUG_PATTERN, SignupResult, SignupService, slugify } from './signup.service';
+import { SLUG_PATTERN, SignupResult, SignupService, SignupStarted, slugify } from './signup.service';
 
 type SlugState = 'idle' | 'checking' | 'available' | 'unavailable' | 'invalid';
 type Field = 'companyName' | 'slug' | 'firstName' | 'lastName' | 'email' | 'password';
@@ -21,8 +21,12 @@ interface Done extends SignupResult {
 }
 
 /**
- * Start a free trial: creates the workspace with this person as its owner (TenantAdmin — never a
- * system admin), waits while it's set up, then shows its address and signs them in to their account.
+ * Start a free trial: confirms the email address with a 6-digit code, creates the workspace with
+ * this person as its owner (TenantAdmin — never a system admin), waits while it's set up, then
+ * shows its address and signs them in to their account.
+ *
+ * Nothing exists until the code is typed back — the form only parks what they entered — so the
+ * "creating" step belongs to the code, not to the form.
  */
 @Component({
   selector: 'app-signup-page',
@@ -51,7 +55,7 @@ export class SignupPage implements OnDestroy {
 
   protected readonly slugState = signal<SlugState>('idle');
   protected readonly slugMessage = signal<string | null>(null);
-  protected readonly phase = signal<'form' | 'creating' | 'done'>('form');
+  protected readonly phase = signal<'form' | 'verify' | 'creating' | 'done'>('form');
   protected readonly step = signal(0);
   protected readonly error = signal<string | null>(null);
   protected readonly done = signal<Done | null>(null);
@@ -64,8 +68,33 @@ export class SignupPage implements OnDestroy {
   protected readonly passwordStrength = signal(0);
   protected readonly strengthLabel = computed(() => ['Too short', 'Weak', 'Fair', 'Good', 'Strong'][this.passwordStrength()]);
 
+  // ---- Email verification: the sign-up waiting on its code.
+  private readonly codeBoxes = viewChildren<ElementRef<HTMLInputElement>>('codeBox');
+  protected readonly pending = signal<SignupStarted | null>(null);
+  protected readonly codeDigits = signal(['', '', '', '', '', '']);
+  protected readonly submitting = signal(false);
+  protected readonly resending = signal(false);
+  protected readonly notice = signal<string | null>(null);
+  /** Ticks once a second while a code is outstanding, so the countdowns below move. */
+  private readonly now = signal(Date.now());
+
+  protected readonly codeComplete = computed(() => this.codeDigits().every((d) => d !== ''));
+
+  /** Seconds until another code may be asked for; 0 means "now". */
+  protected readonly resendIn = computed(() => {
+    const p = this.pending();
+    if (!p) return 0;
+    return Math.max(0, Math.ceil((new Date(p.resendAvailableAt).getTime() - this.now()) / 1000));
+  });
+
+  protected readonly codeExpired = computed(() => {
+    const p = this.pending();
+    return !!p && this.now() >= new Date(p.expiresAt).getTime();
+  });
+
   private slugEdited = false;
   private stepTimer: ReturnType<typeof setInterval> | null = null;
+  private clockTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     const slug = this.form.controls.slug;
@@ -121,6 +150,7 @@ export class SignupPage implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopSteps();
+    this.stopClock();
   }
 
   /** The address field: keep it to what a subdomain allows as they type. */
@@ -137,8 +167,13 @@ export class SignupPage implements OnDestroy {
     return c.invalid && (c.touched || c.dirty);
   }
 
+  /**
+   * Sends the form off. Nothing is created yet: the API parks it and emails a code, and the page
+   * moves to the code step. (A system admin signing up from the console gets the finished
+   * workspace back instead, and lands straight on the last step.)
+   */
   protected submit(): void {
-    if (this.phase() !== 'form') return;
+    if (this.phase() !== 'form' || this.submitting()) return;
     this.error.set(null);
     if (this.form.invalid || this.slugState() === 'unavailable' || this.slugState() === 'invalid') {
       this.form.markAllAsTouched();
@@ -147,8 +182,7 @@ export class SignupPage implements OnDestroy {
     }
 
     const v = this.form.getRawValue();
-    this.phase.set('creating');
-    this.startSteps();
+    this.submitting.set(true);
 
     this.signup
       .register({
@@ -159,41 +193,191 @@ export class SignupPage implements OnDestroy {
         adminLastName: v.lastName.trim(),
         password: v.password,
       })
-      .pipe(
-        switchMap((res) => {
-          const result = res.content;
-          // Sign straight in to the account area with the password they just chose.
-          return this.auth.loginAccount(v.email.trim(), v.password).pipe(
-            map((login) => ({ result, login: login.success ? login.content : null })),
-            catchError(() => of({ result, login: null }))
-          );
-        })
-      )
       .subscribe({
-        next: ({ result, login }) => {
-          this.stopSteps();
-          if (login) {
-            this.auth.startSession(login);
-            this.signedIn.set(true);
+        next: (res) => {
+          this.submitting.set(false);
+          const result = res.content;
+
+          if (result.requiresVerification) {
+            this.pending.set(result);
+            this.codeDigits.set(['', '', '', '', '', '']);
+            this.notice.set(null);
+            this.phase.set('verify');
+            this.startClock();
+            setTimeout(() => this.focusBox(0));
+            window.scrollTo({ top: 0 });
+            return;
           }
-          this.done.set({
-            ...result,
-            firstName: v.firstName.trim(),
-            email: v.email.trim(),
-            host: result.workspaceUrl.replace(/^https?:\/\//, ''),
-          });
-          this.phase.set('done');
-          window.scrollTo({ top: 0 });
+
+          this.phase.set('creating');
+          this.finish(result);
         },
         error: (err: HttpErrorResponse) => {
-          this.stopSteps();
-          this.phase.set('form');
+          this.submitting.set(false);
           this.error.set(this.messageFor(err));
           if (err.status === 409 && /subdomain|address/i.test(err.error?.message ?? '')) {
             this.slugState.set('unavailable');
             this.slugMessage.set(err.error.message);
           }
         },
+      });
+  }
+
+  /** The code from the email — this is the call that actually builds the workspace. */
+  protected verifyCode(): void {
+    const p = this.pending();
+    if (!p || !this.codeComplete() || this.phase() === 'creating') return;
+
+    this.error.set(null);
+    this.notice.set(null);
+    this.phase.set('creating');
+    this.stopClock();
+    this.startSteps();
+
+    this.signup.verify(p.email, this.codeDigits().join('')).subscribe({
+      next: (res) => this.finish(res.content),
+      error: (err: HttpErrorResponse) => {
+        this.stopSteps();
+        this.phase.set('verify');
+        this.startClock();
+        this.error.set(this.messageFor(err));
+        this.codeDigits.set(['', '', '', '', '', '']);
+        // The step was torn down while we were creating; its boxes come back on the next render.
+        setTimeout(() => this.focusBox(0));
+
+        // The address or the workspace name was taken while this sign-up waited, or the sign-up
+        // itself is gone (expired, or too many wrong codes): the form is the only way on.
+        if (err.status === 409 || /fill in the form again/i.test(err.error?.message ?? '')) {
+          this.pending.set(null);
+          this.stopClock();
+          this.phase.set('form');
+          if (err.status === 409 && /subdomain|address/i.test(err.error?.message ?? '')) {
+            this.slugState.set('unavailable');
+            this.slugMessage.set(err.error.message);
+          }
+        }
+      },
+    });
+  }
+
+  protected resend(): void {
+    const p = this.pending();
+    if (!p || this.resending() || this.resendIn() > 0) return;
+
+    this.resending.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+
+    this.signup.resendCode(p.email).subscribe({
+      next: (res) => {
+        this.resending.set(false);
+        // Keep the slug we already have: a resend only reports the new code's timings.
+        this.pending.set({ ...p, ...res.content, slug: p.slug });
+        this.notice.set(res.content.message);
+        this.codeDigits.set(['', '', '', '', '', '']);
+        this.syncBoxes();
+        this.focusBox(0);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.resending.set(false);
+        this.error.set(this.messageFor(err));
+      },
+    });
+  }
+
+  /** Back to the form — to fix a mistyped address, or after the sign-up has gone stale. */
+  protected editDetails(): void {
+    this.stopClock();
+    this.pending.set(null);
+    this.error.set(null);
+    this.notice.set(null);
+    this.phase.set('form');
+  }
+
+  // ---- The six code boxes
+
+  protected onCodeInput(index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const typed = input.value.replace(/\D/g, '');
+    const next = [...this.codeDigits()];
+
+    if (typed.length === 0) {
+      next[index] = '';
+      this.codeDigits.set(next);
+      this.syncBoxes();
+      return;
+    }
+
+    // One box can take the whole code: pasted in, or filled by the phone from the email.
+    let cursor = index;
+    for (const digit of typed) {
+      if (cursor > 5) break;
+      next[cursor++] = digit;
+    }
+
+    this.codeDigits.set(next);
+    this.syncBoxes();
+    this.error.set(null);
+    this.focusBox(Math.min(cursor, 5));
+
+    if (next.every((d) => d !== '')) this.verifyCode();
+  }
+
+  protected onCodeKeydown(index: number, event: KeyboardEvent): void {
+    if (event.key === 'Backspace' && this.codeDigits()[index] === '' && index > 0) {
+      // Backspace in an empty box steps back and clears the one before it.
+      event.preventDefault();
+      const next = [...this.codeDigits()];
+      next[index - 1] = '';
+      this.codeDigits.set(next);
+      this.syncBoxes();
+      this.focusBox(index - 1);
+    } else if (event.key === 'ArrowLeft' && index > 0) {
+      event.preventDefault();
+      this.focusBox(index - 1);
+    } else if (event.key === 'ArrowRight' && index < 5) {
+      event.preventDefault();
+      this.focusBox(index + 1);
+    }
+  }
+
+  private focusBox(index: number): void {
+    const box = this.codeBoxes()[index]?.nativeElement;
+    box?.focus();
+    box?.select();
+  }
+
+  /** Typed characters we rejected never changed the signal, so the DOM needs telling. */
+  private syncBoxes(): void {
+    const digits = this.codeDigits();
+    this.codeBoxes().forEach((box, i) => (box.nativeElement.value = digits[i]));
+  }
+
+  /** Signs them in with the password they chose and shows the finished workspace. */
+  private finish(result: SignupResult): void {
+    const v = this.form.getRawValue();
+    const email = v.email.trim();
+
+    this.auth
+      .loginAccount(email, v.password)
+      .pipe(
+        map((login) => (login.success ? login.content : null)),
+        catchError(() => of(null))
+      )
+      .subscribe((login) => {
+        this.stopSteps();
+        if (login) {
+          this.auth.startSession(login);
+          this.signedIn.set(true);
+        }
+        this.done.set({
+          ...result,
+          firstName: v.firstName.trim(),
+          email,
+          host: result.workspaceUrl.replace(/^https?:\/\//, ''),
+        });
+        this.phase.set('done');
+        window.scrollTo({ top: 0 });
       });
   }
 
@@ -238,6 +422,20 @@ export class SignupPage implements OnDestroy {
     if (this.stepTimer) {
       clearInterval(this.stepTimer);
       this.stepTimer = null;
+    }
+  }
+
+  /** Runs only while a code is outstanding — it drives the resend and expiry countdowns. */
+  private startClock(): void {
+    this.stopClock();
+    this.now.set(Date.now());
+    this.clockTimer = setInterval(() => this.now.set(Date.now()), 1000);
+  }
+
+  private stopClock(): void {
+    if (this.clockTimer) {
+      clearInterval(this.clockTimer);
+      this.clockTimer = null;
     }
   }
 }

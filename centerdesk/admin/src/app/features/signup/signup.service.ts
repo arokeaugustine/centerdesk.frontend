@@ -14,6 +14,7 @@ export interface SignupRequest {
 }
 
 export interface SignupResult {
+  requiresVerification?: false;
   tenantUid: string;
   companyName: string;
   slug: string;
@@ -22,6 +23,24 @@ export interface SignupResult {
   trialEndsAt: string;
   message: string;
 }
+
+/**
+ * What a self-service sign-up gets back: nothing exists yet, a 6-digit code is on its way to the
+ * address, and the workspace is built once that code is confirmed.
+ */
+export interface SignupStarted {
+  requiresVerification: true;
+  email: string;
+  slug: string;
+  /** When the code stops working. */
+  expiresAt: string;
+  /** Not before this instant will another code be sent. */
+  resendAvailableAt: string;
+  message: string;
+}
+
+/** A system admin's own sign-up skips the code and gets the finished workspace straight back. */
+export type SignupStartResult = SignupStarted | SignupResult;
 
 export interface SlugCheck {
   available: boolean;
@@ -42,7 +61,18 @@ export class SignupService {
   }
 
   register(body: SignupRequest) {
-    return this.http.post<ApiResult<SignupResult>>(`${this.apiBaseUrl}/api/register`, body, this.silent());
+    return this.http.post<ApiResult<SignupStartResult>>(`${this.apiBaseUrl}/api/register`, body, this.silent());
+  }
+
+  /** The code from the email: this is the call that actually creates the workspace. */
+  verify(email: string, code: string) {
+    return this.http.post<ApiResult<SignupResult>>(
+      `${this.apiBaseUrl}/api/register/verify`, { email, code }, this.silent());
+  }
+
+  resendCode(email: string) {
+    return this.http.post<ApiResult<SignupStarted>>(
+      `${this.apiBaseUrl}/api/register/resend-code`, { email }, this.silent());
   }
 }
 
