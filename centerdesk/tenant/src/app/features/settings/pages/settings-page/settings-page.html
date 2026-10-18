@@ -1,1 +1,129 @@
-<p>settings-page works!</p>
+<div>
+  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+
+    <!-- Card Header -->
+    <div class="px-6 pt-5 pb-4 border-b border-gray-200 dark:border-white/[0.05]">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Workspace Settings</h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400">How tickets are handled across your workspace</p>
+    </div>
+
+    @if (isLoading()) {
+      <div class="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading settings…</div>
+    } @else if (loadError()) {
+      <div class="m-6 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">
+        {{ loadError() }}
+      </div>
+    } @else if (settings(); as s) {
+
+      @if (!canEdit()) {
+        <div class="m-6 rounded-lg bg-gray-50 dark:bg-white/[0.03] px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+          You can see these settings but not change them. Ask a workspace administrator.
+        </div>
+      }
+
+      <div class="divide-y divide-gray-200 dark:divide-white/[0.05]">
+
+        <!-- Auto-assign -->
+        <div class="flex items-start justify-between gap-6 px-6 py-5">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 dark:text-white/90">Assign new tickets automatically</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Hand each new ticket to a customer service agent with the lightest open workload, preferring
+              whoever is on shift. Off, every ticket arrives unassigned for someone to pick up.
+            </p>
+            <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+              {{ s.customerServiceAgentCount }}
+              {{ s.customerServiceAgentCount === 1 ? 'agent is' : 'agents are' }} eligible right now.
+            </p>
+            @if (autoAssignHasNoAgents()) {
+              <p class="mt-2 rounded-lg bg-warning-50 dark:bg-warning-500/10 px-3 py-2 text-xs text-warning-700 dark:text-warning-400">
+                No active user holds the customer service role, so nothing will be assigned yet.
+                Give someone that role under Users to start routing tickets.
+              </p>
+            }
+          </div>
+          <button
+            type="button"
+            role="switch"
+            [attr.aria-checked]="s.autoAssignTickets"
+            aria-label="Assign new tickets automatically"
+            [disabled]="!canEdit() || saving() !== null"
+            (click)="toggle('autoAssignTickets')"
+            class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
+            [class]="s.autoAssignTickets ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-700'"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"
+              [class]="s.autoAssignTickets ? 'translate-x-5' : 'translate-x-0'"
+            ></span>
+          </button>
+        </div>
+
+        <!-- SLA tracking -->
+        <div class="flex items-start justify-between gap-6 px-6 py-5">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 dark:text-white/90">Track SLA due dates</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Work out response and resolution deadlines from each ticket's sub-category, and flag the ones
+              that run past them.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            [attr.aria-checked]="s.slaEnabled"
+            aria-label="Track SLA due dates"
+            [disabled]="!canEdit() || saving() !== null"
+            (click)="toggle('slaEnabled')"
+            class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
+            [class]="s.slaEnabled ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-700'"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"
+              [class]="s.slaEnabled ? 'translate-x-5' : 'translate-x-0'"
+            ></span>
+          </button>
+        </div>
+
+        <!-- Email notifications -->
+        <div class="flex items-start justify-between gap-6 px-6 py-5">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 dark:text-white/90">Email notifications</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Email your team when a ticket is assigned to them or needs their attention.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            [attr.aria-checked]="s.emailNotificationEnabled"
+            aria-label="Email notifications"
+            [disabled]="!canEdit() || saving() !== null"
+            (click)="toggle('emailNotificationEnabled')"
+            class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
+            [class]="s.emailNotificationEnabled ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-700'"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"
+              [class]="s.emailNotificationEnabled ? 'translate-x-5' : 'translate-x-0'"
+            ></span>
+          </button>
+        </div>
+
+        <!-- Time zone (read-only here; shift times are interpreted in it) -->
+        <div class="flex items-start justify-between gap-6 px-6 py-5">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 dark:text-white/90">Time zone</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Shift start and end times, and the day a schedule falls on, are read in this zone.
+            </p>
+          </div>
+          <span class="mt-0.5 shrink-0 rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-700 dark:bg-white/[0.06] dark:text-gray-300">
+            {{ s.timeZoneId }}
+          </span>
+        </div>
+
+      </div>
+    }
+  </div>
+</div>

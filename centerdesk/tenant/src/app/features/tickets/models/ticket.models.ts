@@ -220,7 +220,8 @@ export interface CreateTicketRequest {
 }
 
 export interface AssignTicketRequest {
-  assignToUserId: number;
+  /** The agent's Uid — the same identifier /api/users returns, so a picker can supply it. */
+  assigneeUserUid: string;
 }
 
 export interface UpdateTicketStatusRequest {

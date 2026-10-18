@@ -456,10 +456,21 @@
             <div class="mb-4 rounded-lg bg-error-50 dark:bg-error-500/10 px-4 py-3 text-sm text-error-600 dark:text-error-400">{{ modalError() }}</div>
           }
           <form [formGroup]="assignForm" (ngSubmit)="onAssign()">
-            <app-label>User ID <span class="text-error-500">*</span></app-label>
-            <app-input-field type="number" placeholder="Enter user ID" formControlName="assignToUserId" />
-            @if (assignForm.get('assignToUserId')?.invalid && assignForm.get('assignToUserId')?.touched) {
-              <p class="mt-1 text-xs text-error-500">Valid user ID required</p>
+            <app-label>Assign to <span class="text-error-500">*</span></app-label>
+            <select
+              formControlName="assigneeUserUid"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="">{{ assignableUsersLoading() ? 'Loading agents…' : 'Select an agent…' }}</option>
+              @for (user of assignableUsers(); track user.uid) {
+                <option [value]="user.uid">{{ displayName(user) }} — {{ user.email }}</option>
+              }
+            </select>
+            @if (assignForm.get('assigneeUserUid')?.invalid && assignForm.get('assigneeUserUid')?.touched) {
+              <p class="mt-1 text-xs text-error-500">Pick who this ticket goes to</p>
+            }
+            @if (!assignableUsersLoading() && assignableUsers().length === 0) {
+              <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">No active users found — add one under Users first.</p>
             }
           </form>
         </div>
@@ -701,6 +712,7 @@
           <app-label>Resolution Team <span class="text-error-500">*</span></app-label>
           <select
             formControlName="resolutionTeamUid"
+            (change)="onForwardTeamChange($any($event.target).value)"
             class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Select a team…</option>
@@ -716,11 +728,26 @@
           }
         </div>
         <div>
-          <app-label>Assignee User UID <span class="text-error-500">*</span></app-label>
-          <app-input-field placeholder="UID of a member of that team" formControlName="assigneeUserUid" />
+          <app-label>Assignee <span class="text-error-500">*</span></app-label>
+          <select
+            formControlName="assigneeUserUid"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="">
+              {{ !forwardForm.get('resolutionTeamUid')?.value
+                   ? 'Pick a team first…'
+                   : (teamMembersLoading() ? 'Loading members…' : 'Select a team member…') }}
+            </option>
+            @for (member of teamMembers(); track member.userUid) {
+              <option [value]="member.userUid">{{ displayName(member) }} — {{ member.email }}</option>
+            }
+          </select>
           <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Forwarding always names a specific team member — it doesn't auto-assign.</p>
           @if (forwardForm.get('assigneeUserUid')?.invalid && forwardForm.get('assigneeUserUid')?.touched) {
             <p class="mt-1 text-xs text-error-500">Required</p>
+          }
+          @if (forwardForm.get('resolutionTeamUid')?.value && !teamMembersLoading() && teamMembers().length === 0) {
+            <p class="mt-1 text-xs text-error-500">That team has no members yet — add one under Teams before forwarding to it.</p>
           }
         </div>
         <div>

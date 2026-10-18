@@ -24,7 +24,9 @@ import {
 } from '../../models/ticket.models';
 import { SubTicketSummary } from '../../../sub-tickets/models/sub-ticket.models';
 import { TeamService } from '../../../teams/services/team.service';
-import { ResolutionTeam } from '../../../teams/models/team.models';
+import { ResolutionTeam, ResolutionTeamMember } from '../../../teams/models/team.models';
+import { UserService } from '../../../users/services/user.service';
+import { UserSummary } from '../../../users/models/user.models';
 import { ServiceCategoryService } from '../../../service-categories/services/service-category.service';
 import { ServiceCategory } from '../../../service-categories/models/service-category.models';
 import { Button } from '../../../../shared/components/button/button';
@@ -79,6 +81,7 @@ export class TicketDetailPage implements OnInit {
   private readonly ticketService = inject(TicketService);
   private readonly attachmentService = inject(TicketAttachmentService);
   private readonly teamService = inject(TeamService);
+  private readonly userService = inject(UserService);
   private readonly categoryService = inject(ServiceCategoryService);
   private readonly permissions = inject(PermissionService);
   private readonly toast = inject(ToastService);
@@ -102,6 +105,14 @@ export class TicketDetailPage implements OnInit {
   protected readonly subTickets = signal<SubTicketSummary[]>([]);
   protected readonly teams = signal<ResolutionTeam[]>([]);
   protected readonly categories = signal<ServiceCategory[]>([]);
+
+  // Agents the ticket can be handed to, and — once a team is picked in the forward modal —
+  // that team's own members. Both are loaded when their modal opens rather than with the page:
+  // most visits never assign or forward, and the lists go stale while a ticket sits open.
+  protected readonly assignableUsers = signal<UserSummary[]>([]);
+  protected readonly assignableUsersLoading = signal(false);
+  protected readonly teamMembers = signal<ResolutionTeamMember[]>([]);
+  protected readonly teamMembersLoading = signal(false);
 
   // Files picked in the reply box. Each uploads straight away; the reply sends their uids.
   protected readonly uploads = signal<ReplyUpload[]>([]);
@@ -163,7 +174,7 @@ export class TicketDetailPage implements OnInit {
   ];
 
   protected readonly assignForm = new FormGroup({
-    assignToUserId: new FormControl('', [Validators.required, Validators.pattern('^[1-9][0-9]*$')]),
+    assigneeUserUid: new FormControl('', [Validators.required]),
   });
 
   protected readonly statusForm = new FormGroup({
@@ -349,12 +360,19 @@ export class TicketDetailPage implements OnInit {
   protected openModal(type: ModalType): void {
     this.modalError.set(null);
     if (type === 'status') this.statusForm.reset({ status: '', remark: '' });
-    if (type === 'assign') this.assignForm.reset();
+    if (type === 'assign') {
+      this.assignForm.reset({ assigneeUserUid: this.ticket()?.assignedTo?.uid ?? '' });
+      this.loadAssignableUsers();
+    }
     if (type === 'close') this.closeForm.reset();
     if (type === 'reopen') this.reopenForm.reset();
     if (type === 'note') this.noteForm.reset();
     if (type === 'forward') {
       this.forwardForm.reset();
+      this.teamMembers.set([]);
+      // Stays disabled until a team is chosen — the member list depends on it. Set here rather
+      // than with [disabled] in the template, which Angular warns against on a reactive control.
+      this.forwardForm.controls.assigneeUserUid.disable();
       this.loadTeamsForForward();
     }
     if (type === 'categorise') {
@@ -384,13 +402,65 @@ export class TicketDetailPage implements OnInit {
     });
   }
 
+  /**
+   * Agents the ticket can be handed to. pageSize is deliberately large: this is a picker, not a
+   * paged table, and a half-populated dropdown silently hides the person you were looking for.
+   * Deactivated users are filtered out — the API refuses to assign to them.
+   */
+  private loadAssignableUsers(): void {
+    this.assignableUsersLoading.set(true);
+    this.userService.getAll({ page: 1, pageSize: 200, isActive: true }).subscribe({
+      next: (res) => {
+        if (res.success) this.assignableUsers.set(res.content?.data ?? []);
+        this.assignableUsersLoading.set(false);
+      },
+      error: () => {
+        this.modalError.set('Could not load the list of agents.');
+        this.assignableUsersLoading.set(false);
+      },
+    });
+  }
+
+  /**
+   * Members of the team picked in the forward modal. Forwarding always names a person, and only
+   * a member of that team is accepted, so the assignee list has to follow the team selection.
+   */
+  protected onForwardTeamChange(teamUid: string): void {
+    const assignee = this.forwardForm.controls.assigneeUserUid;
+    assignee.setValue('');
+    this.teamMembers.set([]);
+
+    if (!teamUid) {
+      assignee.disable();
+      return;
+    }
+    assignee.enable();
+
+    this.teamMembersLoading.set(true);
+    this.teamService.getOne(teamUid).subscribe({
+      next: (res) => {
+        if (res.success) this.teamMembers.set(res.content?.members ?? []);
+        this.teamMembersLoading.set(false);
+      },
+      error: () => {
+        this.modalError.set('Could not load that team\'s members.');
+        this.teamMembersLoading.set(false);
+      },
+    });
+  }
+
+  protected displayName(person: { firstName: string; lastName: string; email: string }): string {
+    return `${person.firstName} ${person.lastName}`.trim() || person.email;
+  }
+
   protected onAssign(): void {
     if (this.isSubmitting()) return;
     if (this.assignForm.invalid) { this.assignForm.markAllAsTouched(); return; }
     this.isSubmitting.set(true);
-    const userId = parseInt(this.assignForm.getRawValue().assignToUserId!, 10);
 
-    this.ticketService.assign(this.uid(), { assignToUserId: userId }).subscribe({
+    this.ticketService.assign(this.uid(), {
+      assigneeUserUid: this.assignForm.getRawValue().assigneeUserUid!,
+    }).subscribe({
       next: (res) => {
         if (res.success) {
           this.ticket.set(res.content);
